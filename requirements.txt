@@ -1,4 +1,2 @@
+requests
 python-telegram-bot
-selenium
-python-dotenv
-webdriver-manager
