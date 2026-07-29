@@ -1,0 +1,19 @@
+# تنظیمات مشترک ربات: توکن‌ها، آدرس API‌ها، مسیر فایل‌های ذخیره‌سازی و منطقه‌ی زمانی.
+
+import os
+from datetime import timezone, timedelta
+from dotenv import load_dotenv
+
+load_dotenv()
+
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+CHAT_ID = os.getenv("CHAT_ID")
+
+GOLD_URL = "https://milli.gold/api/v1/public/milli-price/detail"
+SILVER_URL = "https://melligold.com/api/v1/exchange/buy-sell-price/?format=json&symbol=XAG"
+
+PRICE_FILE = "price.json"
+DATA_FILE = "data.jsonl"
+LAST_AVERAGE_FILE = "last_average.txt"
+
+TEHRAN_TZ = timezone(timedelta(hours=3, minutes=30))
