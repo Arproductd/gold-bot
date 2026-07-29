@@ -24,9 +24,20 @@ def get_gold_price():
 
 
 def get_silver_price():
-    res = requests.get(SILVER_URL, timeout=10)
+    headers = {
+        "User-Agent": "Mozilla/5.0"
+    }
+
+    res = requests.get(SILVER_URL, headers=headers, timeout=10)
+
+    print(res.status_code)
+    print(res.text)
+
     res.raise_for_status()
-    return int(res.json()["data"]["price_buy"])
+
+    data = res.json()
+
+    return int(data["data"]["price_buy"])
 
 
 def load_prices():
