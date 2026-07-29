@@ -9,75 +9,86 @@ load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 
-URL = "https://milli.gold/api/v1/public/milli-price/detail"
-PRICE_FILE = "price.json"
-
 bot = Bot(BOT_TOKEN)
 
+GOLD_URL = "https://milli.gold/api/v1/public/milli-price/detail"
+SILVER_URL = "https://melligold.com/api/v1/exchange/buy-sell-price/?format=api&symbol=XAG"
 
-def get_price():
-    res = requests.get(URL, timeout=10)
+PRICE_FILE = "price.json"
+
+
+def get_gold_price():
+    res = requests.get(GOLD_URL, timeout=10)
     res.raise_for_status()
-
-    data = res.json()
-
-    return int(data["data"]["price18"])
+    return int(res.json()["data"]["price18"])
 
 
-def load_price():
+def get_silver_price():
+    res = requests.get(SILVER_URL, timeout=10)
+    res.raise_for_status()
+    return int(res.json()["data"]["price_buy"])
+
+
+def load_prices():
     if not os.path.exists(PRICE_FILE):
-        return None
+        return {"gold": 0, "silver": 0}
 
     with open(PRICE_FILE, "r") as f:
-        return json.load(f)["price"]
+        return json.load(f)
 
 
-def save_price(price):
+def save_prices(gold, silver):
     with open(PRICE_FILE, "w") as f:
-        json.dump({"price": price}, f)
+        json.dump(
+            {
+                "gold": gold,
+                "silver": silver
+            },
+            f
+        )
 
 
 async def main():
+    gold = get_gold_price()
+    silver = get_silver_price()
 
-    price = get_price()
-    last = load_price()
+    last = load_prices()
 
-    if last is None:
-        save_price(price)
+    last_gold = last.get("gold", 0)
+    last_silver = last.get("silver", 0)
+
+    if last_gold == 0 and last_silver == 0:
+        save_prices(gold, silver)
         return
 
-    if price == last:
+    if gold == last_gold and silver == last_silver:
         return
 
-    diff = price - last
+    text = "📊 بروزرسانی بازار\n\n"
 
-    if diff > 0:
-        text = f"""📈 قیمت افزایش یافت
+    if gold != last_gold:
+        diff = gold - last_gold
+        emoji = "📈" if diff > 0 else "📉"
 
-از:
-{last:,}
+        text += (
+            f"🥇 طلا\n"
+            f"{last_gold:,} ➜ {gold:,}\n"
+            f"{emoji} {diff:+,}\n\n"
+        )
 
-به:
-{price:,}
+    if silver != last_silver:
+        diff = silver - last_silver
+        emoji = "📈" if diff > 0 else "📉"
 
-(+{diff:,})
-"""
+        text += (
+            f"🥈 نقره\n"
+            f"{last_silver:,} ➜ {silver:,}\n"
+            f"{emoji} {diff:+,}\n"
+        )
 
-    else:
-        text = f"""📉 قیمت کاهش یافت
+    await bot.send_message(chat_id=CHAT_ID, text=text)
 
-از:
-{last:,}
-
-به:
-{price:,}
-
-({diff:,})
-"""
-
-    await bot.send_message(CHAT_ID, text)
-
-    save_price(price)
+    save_prices(gold, silver)
 
 
 if __name__ == "__main__":
