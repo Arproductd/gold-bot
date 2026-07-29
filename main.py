@@ -48,6 +48,20 @@ def save_prices(gold, silver):
         )
 
 
+def format_line(label, price, last_price):
+    if last_price == 0 or price == last_price:
+        return f"{label}\n{price:,}\n\n"
+
+    diff = price - last_price
+    emoji = "📈" if diff > 0 else "📉"
+
+    return (
+        f"{label}\n"
+        f"{last_price:,} ➜ {price:,}\n"
+        f"{emoji} {diff:+,}\n\n"
+    )
+
+
 async def main():
     gold = get_gold_price()
     silver = get_silver_price()
@@ -57,36 +71,11 @@ async def main():
     last_gold = last.get("gold", 0)
     last_silver = last.get("silver", 0)
 
-    if last_gold == 0 and last_silver == 0:
-        save_prices(gold, silver)
-        return
-
-    if gold == last_gold and silver == last_silver:
-        return
-
     text = "📊 بروزرسانی بازار\n\n"
+    text += format_line("🥇 طلا", gold, last_gold)
+    text += format_line("🥈 نقره", silver, last_silver)
 
-    if gold != last_gold:
-        diff = gold - last_gold
-        emoji = "📈" if diff > 0 else "📉"
-
-        text += (
-            f"🥇 طلا\n"
-            f"{last_gold:,} ➜ {gold:,}\n"
-            f"{emoji} {diff:+,}\n\n"
-        )
-
-    if silver != last_silver:
-        diff = silver - last_silver
-        emoji = "📈" if diff > 0 else "📉"
-
-        text += (
-            f"🥈 نقره\n"
-            f"{last_silver:,} ➜ {silver:,}\n"
-            f"{emoji} {diff:+,}\n"
-        )
-
-    await bot.send_message(chat_id=CHAT_ID, text=text)
+    await bot.send_message(chat_id=CHAT_ID, text=text.strip())
 
     save_prices(gold, silver)
 
