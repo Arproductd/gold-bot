@@ -12,7 +12,7 @@ CHAT_ID = os.getenv("CHAT_ID")
 bot = Bot(BOT_TOKEN)
 
 GOLD_URL = "https://milli.gold/api/v1/public/milli-price/detail"
-SILVER_URL = "https://melligold.com/api/v1/exchange/buy-sell-price/?format=api&symbol=XAG"
+SILVER_URL = "https://melligold.com/api/v1/exchange/buy-sell-price/?format=json&symbol=XAG"
 
 PRICE_FILE = "price.json"
 
@@ -24,20 +24,9 @@ def get_gold_price():
 
 
 def get_silver_price():
-    headers = {
-        "User-Agent": "Mozilla/5.0"
-    }
-
-    res = requests.get(SILVER_URL, headers=headers, timeout=10)
-
-    print(res.status_code)
-    print(res.text)
-
+    res = requests.get(SILVER_URL, timeout=10)
     res.raise_for_status()
-
-    data = res.json()
-
-    return int(data["data"]["price_buy"])
+    return int(res.json()["data"]["price_buy"])
 
 
 def load_prices():
