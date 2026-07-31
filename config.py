@@ -11,7 +11,7 @@ CHAT_ID = os.getenv("CHAT_ID")
 
 # چند مقصد اضافی برای ارسال پیام (مثل آیدی کانال)، جدا شده با کاما در .env
 # مثال: CHAT_IDS=912109494,-1001234567890
-CHAT_IDS = [c.strip() for c in os.getenv("CHAT_IDS", str(CHAT_ID or "")).split(",") if c.strip()]
+CHAT_IDS = [c.strip() for c in (os.getenv("CHAT_IDS") or str(CHAT_ID or "")).split(",") if c.strip()]
 
 GOLD_URL = "https://milli.gold/api/v1/public/milli-price/detail"
 SILVER_URL = "https://melligold.com/api/v1/exchange/buy-sell-price/?format=json&symbol=XAG"
