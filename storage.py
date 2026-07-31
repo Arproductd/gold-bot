@@ -6,7 +6,8 @@
 import json
 import os
 from datetime import datetime
-from config import PRICE_FILE, DATA_FILE, LAST_AVERAGE_FILE, TEHRAN_TZ
+from config import PRICE_FILE, DATA_FILE, LAST_AVERAGE_FILE, LAST_WEEKLY_FILE, TEHRAN_TZ
+from jalali import to_jalali
 
 
 def load_prices():
@@ -33,13 +34,14 @@ def append_data(gold, silver):
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
 
-def month_average(month):
+def month_average(year, month):
     gold_sum = silver_sum = count = 0
 
     with open(DATA_FILE, "r", encoding="utf-8") as f:
         for line in f:
             entry = json.loads(line)
-            if entry["time"][:7] != month:
+            entry_date = to_jalali(datetime.fromisoformat(entry["time"]))
+            if (entry_date.year, entry_date.month) != (year, month):
                 continue
 
             gold_sum += entry["gold"]
@@ -50,6 +52,31 @@ def month_average(month):
         return None
 
     return round(gold_sum / count), round(silver_sum / count)
+
+
+def week_high_low(start_date, end_date):
+    gold_prices = []
+    silver_prices = []
+
+    with open(DATA_FILE, "r", encoding="utf-8") as f:
+        for line in f:
+            entry = json.loads(line)
+            entry_date = datetime.fromisoformat(entry["time"]).date()
+            if not (start_date <= entry_date <= end_date):
+                continue
+
+            gold_prices.append(entry["gold"])
+            silver_prices.append(entry["silver"])
+
+    if not gold_prices:
+        return None
+
+    return {
+        "gold_high": max(gold_prices),
+        "gold_low": min(gold_prices),
+        "silver_high": max(silver_prices),
+        "silver_low": min(silver_prices),
+    }
 
 
 def load_last_average_month():
@@ -63,3 +90,16 @@ def load_last_average_month():
 def save_last_average_month(month):
     with open(LAST_AVERAGE_FILE, "w") as f:
         f.write(month)
+
+
+def load_last_weekly():
+    if not os.path.exists(LAST_WEEKLY_FILE):
+        return None
+
+    with open(LAST_WEEKLY_FILE, "r") as f:
+        return f.read().strip()
+
+
+def save_last_weekly(week_end):
+    with open(LAST_WEEKLY_FILE, "w") as f:
+        f.write(str(week_end))
