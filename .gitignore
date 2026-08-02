@@ -3,3 +3,9 @@
 __pycache__/
 *.pyc
 price.json
+
+php/.env
+php/price.json
+php/data.jsonl
+php/last_average.txt
+php/last_weekly.txt
