@@ -22,8 +22,7 @@ function check_monthly_average()
     $averages = month_average($year, $month);
 
     if ($averages !== null) {
-        [$avg_gold, $avg_silver] = $averages;
-        send_monthly_average(month_label($year, $month), $avg_gold, $avg_silver);
+        send_monthly_average(month_label($year, $month), $averages);
     }
 
     save_last_average_month($key);
@@ -48,30 +47,49 @@ function check_weekly_summary()
     $summary = week_high_low($week_start, $week_end);
 
     if ($summary !== null) {
-        send_weekly_summary(
-            $summary['gold_high'],
-            $summary['gold_low'],
-            $summary['silver_high'],
-            $summary['silver_low']
-        );
+        send_weekly_summary($summary);
     }
 
     save_last_weekly($week_end);
 }
 
+function is_quiet_hours($now)
+{
+    $time = $now->format('H:i');
+
+    return $time > QUIET_HOURS_START && $time < QUIET_HOURS_END;
+}
+
 function main()
 {
+    $now = tehran_now();
+
+    // بین ۰۰:۰۳ و ۰۷:۰۳ پیامی ارسال نمی‌شه؛ ۰۰:۰۳ خودش آخرین پیام شبه
+    if (is_quiet_hours($now)) {
+        return;
+    }
+
     $gold = get_gold_price();
     $silver = get_silver_price();
+    $usd = get_usd_price();
+    $ounce = get_ounce_price();
 
-    append_data($gold, $silver);
+    append_data($gold, $silver, $usd, $ounce);
     check_monthly_average();
     check_weekly_summary();
 
     $last = load_prices();
-    send_price_update($gold, $silver, $last['gold'] ?? 0, $last['silver'] ?? 0);
+    $bubble = calculate_gold_bubble($gold, $usd, $ounce);
 
-    if (!save_prices($gold, $silver)) {
+    $today = $now->format('Y-m-d');
+    if (load_last_morning() !== $today) {
+        send_morning_summary($gold, $silver, $usd, $ounce, $last['gold'] ?? 0, $last['silver'] ?? 0, $last['usd'] ?? 0, $last['ounce'] ?? 0, $bubble);
+        save_last_morning($today);
+    } else {
+        send_price_update($gold, $silver, $usd, $ounce, $last['gold'] ?? 0, $last['silver'] ?? 0, $last['usd'] ?? 0, $last['ounce'] ?? 0, $bubble);
+    }
+
+    if (!save_prices($gold, $silver, $usd, $ounce)) {
         error_log('save_prices failed: ' . var_export(error_get_last(), true));
     }
 }

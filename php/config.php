@@ -47,11 +47,21 @@ if (BOT_TOKEN === '' || empty($GLOBALS['CHAT_IDS'])) {
 
 define('GOLD_URL', 'https://milli.gold/api/v1/public/milli-price/detail');
 define('SILVER_URL', 'https://melligold.com/api/v1/exchange/buy-sell-price/?format=json&symbol=XAG');
+define('TGJU_URL', 'https://call2.tgju.org/ajax.json?rev=HJogHjCOgu6awK2rIJN09u8MtOOogD3jj5knmgw12qF8oL9G43FTscPQs6pu');
+
+// برای محاسبه‌ی قیمت ذاتی طلای ۱۸ عیار از روی انس جهانی و نرخ دلار
+define('GRAMS_PER_TROY_OUNCE', 31.1034768);
+define('GOLD_PURITY_18K', 0.75);
 
 define('PRICE_FILE', __DIR__ . '/price.json');
 define('DATA_FILE', __DIR__ . '/data.jsonl');
 define('LAST_AVERAGE_FILE', __DIR__ . '/last_average.txt');
 define('LAST_WEEKLY_FILE', __DIR__ . '/last_weekly.txt');
+define('LAST_MORNING_FILE', __DIR__ . '/last_morning.txt');
+
+// بین این دو ساعت پیامی ارسال نمی‌شه؛ اولین پیام بعد از این بازه، خلاصه‌ی صبحگاهیه
+define('QUIET_HOURS_START', '00:03');
+define('QUIET_HOURS_END', '07:03');
 
 define('TEHRAN_TZ_NAME', 'Asia/Tehran');
 

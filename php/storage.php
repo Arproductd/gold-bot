@@ -6,24 +6,33 @@
 
 function load_prices()
 {
+    $defaults = ['gold' => 0, 'silver' => 0, 'usd' => 0, 'ounce' => 0];
+
     if (!file_exists(PRICE_FILE)) {
-        return ['gold' => 0, 'silver' => 0];
+        return $defaults;
     }
 
-    return json_decode(file_get_contents(PRICE_FILE), true);
+    return (json_decode(file_get_contents(PRICE_FILE), true) ?: []) + $defaults;
 }
 
-function save_prices($gold, $silver)
+function save_prices($gold, $silver, $usd, $ounce)
 {
-    return file_put_contents(PRICE_FILE, json_encode(['gold' => $gold, 'silver' => $silver])) !== false;
+    return file_put_contents(PRICE_FILE, json_encode([
+        'gold' => $gold,
+        'silver' => $silver,
+        'usd' => $usd,
+        'ounce' => $ounce,
+    ])) !== false;
 }
 
-function append_data($gold, $silver)
+function append_data($gold, $silver, $usd, $ounce)
 {
     $entry = [
         'time' => tehran_now()->format(DATE_ATOM),
         'gold' => $gold,
         'silver' => $silver,
+        'usd' => $usd,
+        'ounce' => $ounce,
     ];
 
     file_put_contents(DATA_FILE, json_encode($entry, JSON_UNESCAPED_UNICODE) . "\n", FILE_APPEND | LOCK_EX);
@@ -35,8 +44,7 @@ function month_average($year, $month)
         return null;
     }
 
-    $gold_sum = 0;
-    $silver_sum = 0;
+    $sums = ['gold' => 0, 'silver' => 0, 'usd' => 0, 'ounce' => 0];
     $count = 0;
 
     foreach (file(DATA_FILE, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
@@ -48,8 +56,10 @@ function month_average($year, $month)
             continue;
         }
 
-        $gold_sum += $entry['gold'];
-        $silver_sum += $entry['silver'];
+        $sums['gold'] += $entry['gold'];
+        $sums['silver'] += $entry['silver'];
+        $sums['usd'] += $entry['usd'] ?? 0;
+        $sums['ounce'] += $entry['ounce'] ?? 0;
         $count++;
     }
 
@@ -57,7 +67,12 @@ function month_average($year, $month)
         return null;
     }
 
-    return [(int) round($gold_sum / $count), (int) round($silver_sum / $count)];
+    return [
+        'gold' => (int) round($sums['gold'] / $count),
+        'silver' => (int) round($sums['silver'] / $count),
+        'usd' => (int) round($sums['usd'] / $count),
+        'ounce' => round($sums['ounce'] / $count, 2),
+    ];
 }
 
 function week_high_low($start_date, $end_date)
@@ -66,8 +81,7 @@ function week_high_low($start_date, $end_date)
         return null;
     }
 
-    $gold_prices = [];
-    $silver_prices = [];
+    $prices = ['gold' => [], 'silver' => [], 'usd' => [], 'ounce' => []];
 
     foreach (file(DATA_FILE, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
         $entry = json_decode($line, true);
@@ -77,19 +91,25 @@ function week_high_low($start_date, $end_date)
             continue;
         }
 
-        $gold_prices[] = $entry['gold'];
-        $silver_prices[] = $entry['silver'];
+        $prices['gold'][] = $entry['gold'];
+        $prices['silver'][] = $entry['silver'];
+        $prices['usd'][] = $entry['usd'] ?? 0;
+        $prices['ounce'][] = $entry['ounce'] ?? 0;
     }
 
-    if (empty($gold_prices)) {
+    if (empty($prices['gold'])) {
         return null;
     }
 
     return [
-        'gold_high' => max($gold_prices),
-        'gold_low' => min($gold_prices),
-        'silver_high' => max($silver_prices),
-        'silver_low' => min($silver_prices),
+        'gold_high' => max($prices['gold']),
+        'gold_low' => min($prices['gold']),
+        'silver_high' => max($prices['silver']),
+        'silver_low' => min($prices['silver']),
+        'usd_high' => max($prices['usd']),
+        'usd_low' => min($prices['usd']),
+        'ounce_high' => max($prices['ounce']),
+        'ounce_low' => min($prices['ounce']),
     ];
 }
 
@@ -119,4 +139,18 @@ function load_last_weekly()
 function save_last_weekly($week_end)
 {
     file_put_contents(LAST_WEEKLY_FILE, (string) $week_end);
+}
+
+function load_last_morning()
+{
+    if (!file_exists(LAST_MORNING_FILE)) {
+        return null;
+    }
+
+    return trim(file_get_contents(LAST_MORNING_FILE));
+}
+
+function save_last_morning($date)
+{
+    file_put_contents(LAST_MORNING_FILE, (string) $date);
 }

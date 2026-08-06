@@ -19,28 +19,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - uses: shivammathur/setup-php@v2
         with:
-          python-version: "3.12"
-
-      - name: Install packages
-        run: |
-          pip install -r requirements.txt
+          php-version: "8.2"
+          extensions: curl
 
       - name: Run bot
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
           CHAT_IDS: ${{ secrets.CHAT_IDS }}
-        run: python main.py
+        run: php php/main.php
 
-      - name: Commit price.json
+      - name: Commit price files
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
-          for f in price.json data.jsonl last_average.txt last_weekly.txt; do
-            [ -f "$f" ] && git add "$f"
+          for f in php/price.json php/data.jsonl php/last_average.txt php/last_weekly.txt php/last_morning.txt; do
+            [ -f "$f" ] && git add -f "$f"
           done
 
           git diff --cached --quiet || (

@@ -55,3 +55,41 @@ function get_silver_price()
 {
     return extract_price(http_get_json(SILVER_URL), 'price_buy', SILVER_URL);
 }
+
+function extract_tgju_price($data, $field, $url)
+{
+    $value = $data['current'][$field]['p'] ?? null;
+    $numeric = is_string($value) ? str_replace(',', '', $value) : $value;
+
+    if (!is_numeric($numeric)) {
+        throw new RuntimeException("فیلد $field توی پاسخ $url پیدا نشد یا عدد نیست");
+    }
+
+    return $numeric;
+}
+
+function get_usd_price()
+{
+    return (int) extract_tgju_price(http_get_json(TGJU_URL), 'price_dollar_rl', TGJU_URL);
+}
+
+function get_ounce_price()
+{
+    return (float) extract_tgju_price(http_get_json(TGJU_URL), 'tether_gold_xaut', TGJU_URL);
+}
+
+function calculate_gold_bubble($gold, $usd, $ounce)
+{
+    $intrinsic = ($ounce / GRAMS_PER_TROY_OUNCE) * $usd * GOLD_PURITY_18K;
+
+    if ($intrinsic <= 0) {
+        return ['amount' => 0, 'percent' => 0.0];
+    }
+
+    $amount = $gold - $intrinsic;
+
+    return [
+        'amount' => (int) round($amount),
+        'percent' => round($amount / $intrinsic * 100, 1),
+    ];
+}
