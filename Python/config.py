@@ -4,7 +4,9 @@ import os
 from datetime import timezone, timedelta
 from dotenv import load_dotenv
 
-load_dotenv()
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
@@ -16,9 +18,9 @@ CHAT_IDS = [c.strip() for c in (os.getenv("CHAT_IDS") or str(CHAT_ID or "")).spl
 GOLD_URL = "https://milli.gold/api/v1/public/milli-price/detail"
 SILVER_URL = "https://melligold.com/api/v1/exchange/buy-sell-price/?format=json&symbol=XAG"
 
-PRICE_FILE = "price.json"
-DATA_FILE = "data.jsonl"
-LAST_AVERAGE_FILE = "last_average.txt"
-LAST_WEEKLY_FILE = "last_weekly.txt"
+PRICE_FILE = os.path.join(BASE_DIR, "price.json")
+DATA_FILE = os.path.join(BASE_DIR, "data.jsonl")
+LAST_AVERAGE_FILE = os.path.join(BASE_DIR, "last_average.txt")
+LAST_WEEKLY_FILE = os.path.join(BASE_DIR, "last_weekly.txt")
 
 TEHRAN_TZ = timezone(timedelta(hours=3, minutes=30))

@@ -1,11 +1,13 @@
-.env
 .DS_Store
 __pycache__/
 *.pyc
-price.json
 
-php/.env
-php/price.json
-php/data.jsonl
-php/last_average.txt
-php/last_weekly.txt
+Python/.env
+Python/price.json
+
+PHP/.env
+PHP/price.json
+PHP/data.jsonl
+PHP/last_average.txt
+PHP/last_weekly.txt
+PHP/last_morning.txt

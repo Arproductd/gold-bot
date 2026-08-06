@@ -29,14 +29,14 @@ jobs:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
           CHAT_IDS: ${{ secrets.CHAT_IDS }}
-        run: php php/main.php
+        run: php PHP/main.php
 
       - name: Commit price files
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
-          for f in php/price.json php/data.jsonl php/last_average.txt php/last_weekly.txt php/last_morning.txt; do
+          for f in PHP/price.json PHP/data.jsonl PHP/last_average.txt PHP/last_weekly.txt PHP/last_morning.txt; do
             [ -f "$f" ] && git add -f "$f"
           done
 
