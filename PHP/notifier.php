@@ -56,11 +56,17 @@ function format_line($label, $price, $last_price, $decimals = 0, $prefix = '')
 function format_bubble_line($bubble)
 {
     // حباب مثبت یعنی طلا نسبت به قیمت ذاتی‌ش گرون‌تره (احتیاط)، منفی یعنی ارزون‌تره (فرصت خرید)
-    $emoji = $bubble['percent'] >= 0 ? '🔴' : '🟢';
+    $is_cheap = $bubble['percent'] < 0;
+    $emoji = $is_cheap ? '🟢' : '🔴';
+    $suggestion = $is_cheap ? 'پیشنهاد خرید' : 'پیشنهاد صبر';
     $sign = $bubble['percent'] >= 0 ? '+' : '';
 
-    return "$emoji حباب طلای ۱۸ عیار\n"
-        . number_format(toman($bubble['amount'])) . ' تومان (' . $sign . number_format($bubble['percent'], 1) . "%)\n\n";
+    // amount توی prices.php به ازای هر «میلی» و به ریاله؛ برای این خط به ازای هر گرم و به تومان نشون می‌دیم (×۱۰۰)
+    $amount_per_gram_toman = abs($bubble['amount']) * 100;
+
+    return "$emoji حباب طلای ۱۸ عیار ($suggestion)\n"
+        . '(' . $sign . number_format($bubble['percent'], 1) . "%)\n"
+        . number_format($amount_per_gram_toman) . " تومان\n\n";
 }
 
 function send_price_update($gold, $silver, $usd, $ounce, $last_gold, $last_silver, $last_usd, $last_ounce, $bubble)
