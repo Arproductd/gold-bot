@@ -68,14 +68,18 @@ function extract_tgju_price($data, $field, $url)
     return $numeric;
 }
 
-function get_usd_price()
+function get_tgju_prices()
 {
-    return (int) extract_tgju_price(http_get_json(TGJU_URL), 'price_dollar_rl', TGJU_URL);
-}
+    $data = http_get_json(TGJU_URL);
 
-function get_ounce_price()
-{
-    return (float) extract_tgju_price(http_get_json(TGJU_URL), 'tether_gold_xaut', TGJU_URL);
+    return [
+        'usd' => (int) extract_tgju_price($data, 'price_dollar_rl', TGJU_URL),
+        'ounce' => (float) extract_tgju_price($data, 'tether_gold_xaut', TGJU_URL),
+        'cny' => (int) extract_tgju_price($data, 'price_cny', TGJU_URL),
+        'aed' => (int) extract_tgju_price($data, 'price_aed', TGJU_URL),
+        'eur' => (int) extract_tgju_price($data, 'price_eur', TGJU_URL),
+        'try' => (int) extract_tgju_price($data, 'price_try', TGJU_URL),
+    ];
 }
 
 function calculate_gold_bubble($gold, $usd, $ounce)

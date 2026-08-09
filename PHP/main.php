@@ -28,29 +28,24 @@ function check_monthly_average()
     save_last_average_month($key);
 }
 
-function check_weekly_summary()
+// $day: تاریخ (Y-m-d) جمعه‌ای که داره تموم می‌شه؛ هفته از شنبه تا همون جمعه حساب می‌شه.
+// خروجی می‌گه که خلاصه واقعاً ارسال شد یا نه (برای جلوگیری از جایگزین نشدن پیام آخر شب).
+function send_friday_weekly_summary($day)
 {
-    $now = tehran_now();
-
-    // جمعه (ISO-8601 روز ۵) ساعت ۹ صبح؛ هفته از شنبه تا جمعه حساب می‌شه
-    if ((int) $now->format('N') !== 5 || (int) $now->format('G') !== 9) {
-        return;
+    if (load_last_weekly() === $day) {
+        return false;
     }
 
-    $week_end = $now->format('Y-m-d');
-    $week_start = (clone $now)->modify('-6 days')->format('Y-m-d');
-
-    if (load_last_weekly() === $week_end) {
-        return;
-    }
-
-    $summary = week_high_low($week_start, $week_end);
+    $week_start = (new DateTime($day, new DateTimeZone(TEHRAN_TZ_NAME)))->modify('-6 days')->format('Y-m-d');
+    $summary = week_high_low($week_start, $day);
 
     if ($summary !== null) {
         send_weekly_summary($summary);
     }
 
-    save_last_weekly($week_end);
+    save_last_weekly($day);
+
+    return $summary !== null;
 }
 
 function is_quiet_hours($now)
@@ -60,17 +55,29 @@ function is_quiet_hours($now)
     return $time > QUIET_HOURS_START && $time < QUIET_HOURS_END;
 }
 
+// روزی که برای تشخیص «اولین پیام بعد از سکوت» استفاده می‌شه؛ چون سکوت از ۰۰:۰۳ (بعد از عوض شدن
+// تاریخ) تا ۰۷:۰۳ ادامه داره، تا قبل از پایان سکوت هنوز «دیروز» حساب می‌شه، وگرنه دقیقه‌ی ۰۰:۰۳
+// (اولین اجرای غیرساکت روز جدید) به‌جای پیام مخصوص خودش، خلاصه‌ی صبحگاهی رو می‌گرفت
+function morning_key_date($now)
+{
+    if ($now->format('H:i') < QUIET_HOURS_END) {
+        return (clone $now)->modify('-1 day')->format('Y-m-d');
+    }
+
+    return $now->format('Y-m-d');
+}
+
 function main()
 {
     $now = tehran_now();
 
-    $gold = get_gold_price();
-    $silver = get_silver_price();
-    $usd = get_usd_price();
-    $ounce = get_ounce_price();
+    $prices = [
+        'gold' => get_gold_price(),
+        'silver' => get_silver_price(),
+    ] + get_tgju_prices();
 
     // دیتا همیشه (حتی توی ساعت سکوت) ثبت می‌شه تا میانگین ماهانه/خلاصه هفتگی درست باقی بمونه
-    append_data($gold, $silver, $usd, $ounce);
+    append_data($prices['gold'], $prices['silver'], $prices['usd'], $prices['ounce'], $prices['cny'], $prices['aed'], $prices['eur'], $prices['try']);
 
     // بین ۰۰:۰۳ و ۰۷:۰۳ پیامی ارسال نمی‌شه؛ ۰۰:۰۳ خودش آخرین پیام شبه
     if (is_quiet_hours($now)) {
@@ -78,20 +85,26 @@ function main()
     }
 
     check_monthly_average();
-    check_weekly_summary();
 
     $last = load_prices();
-    $bubble = calculate_gold_bubble($gold, $usd, $ounce);
+    $bubble = calculate_gold_bubble($prices['gold'], $prices['usd'], $prices['ounce']);
 
-    $today = $now->format('Y-m-d');
+    $today = morning_key_date($now);
     if (load_last_morning() !== $today) {
-        send_morning_summary($gold, $silver, $usd, $ounce, $last['gold'] ?? 0, $last['silver'] ?? 0, $last['usd'] ?? 0, $last['ounce'] ?? 0, $bubble);
+        send_morning_summary($prices, $last, $bubble);
         save_last_morning($today);
+    } elseif ($now->format('H:i') === QUIET_HOURS_START) {
+        // اگه روزی که داره تموم می‌شه جمعه‌ست، پیام آخر شب جاش رو به خلاصه‌ی هفتگی می‌ده
+        $ending_weekday = (int) (new DateTime($today, new DateTimeZone(TEHRAN_TZ_NAME)))->format('N');
+
+        if ($ending_weekday !== 5 || !send_friday_weekly_summary($today)) {
+            send_last_update($prices, $last, $bubble, $now->format('H:i'));
+        }
     } else {
-        send_price_update($gold, $silver, $usd, $ounce, $last['gold'] ?? 0, $last['silver'] ?? 0, $last['usd'] ?? 0, $last['ounce'] ?? 0, $bubble);
+        send_price_update($prices, $last, $bubble);
     }
 
-    if (!save_prices($gold, $silver, $usd, $ounce)) {
+    if (!save_prices($prices['gold'], $prices['silver'], $prices['usd'], $prices['ounce'], $prices['cny'], $prices['aed'], $prices['eur'], $prices['try'])) {
         error_log('save_prices failed: ' . var_export(error_get_last(), true));
     }
 }

@@ -10,6 +10,7 @@ function telegram_send_message($chat_id, $text)
     curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query([
         'chat_id' => $chat_id,
         'text' => $text,
+        'parse_mode' => 'HTML',
     ]));
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_TIMEOUT, 10);
@@ -33,25 +34,26 @@ function broadcast($text)
     }
 }
 
-// gold(milli.gold) و usd/ounce(tgju) به ریال‌ان، برای نمایش تبدیل به تومان می‌شن (÷۱۰).
+// gold(milli.gold) و usd/eur/aed/cny(tgju) به ریال‌ان، برای نمایش تبدیل به تومان می‌شن (÷۱۰).
 // silver(melligold) و ounce از قبل به ترتیب تومان و دلارن، دست‌نخورده می‌مونن.
 function toman($rial)
 {
     return $rial / 10;
 }
 
+const SEPARATOR = "\n—————\n";
+
 function format_line($label, $price, $last_price, $decimals = 0, $prefix = '')
 {
     if ($last_price == 0 || $price == $last_price) {
-        return $label . "\n" . $prefix . number_format($price, $decimals) . "\n\n";
+        return $label . ': ' . $prefix . number_format($price, $decimals);
     }
 
     $diff = $price - $last_price;
-    $emoji = $diff > 0 ? '📈' : '📉';
     $sign = $diff > 0 ? '+' : '';
 
-    return $label . "\n" . $prefix . number_format($last_price, $decimals) . " ➜ " . $prefix . number_format($price, $decimals) . "\n"
-        . $emoji . ' ' . $sign . $prefix . number_format($diff, $decimals) . "\n\n";
+    return $label . ': <s>' . $prefix . number_format($last_price, $decimals) . '</s> ➜ ' . $prefix . number_format($price, $decimals)
+        . ' | ' . $sign . $prefix . number_format($diff, $decimals);
 }
 
 function format_bubble_line($bubble)
@@ -60,74 +62,93 @@ function format_bubble_line($bubble)
     $percent = $bubble['percent'];
     $discount = -$percent;
 
-    if ($discount >= 4) {
-        $emoji = '🟢';
-        $suggestion = 'پیشنهاد خرید';
-    } elseif ($discount < 3) {
-        $emoji = '🔴';
-        $suggestion = 'پیشنهاد فروش';
-    } else {
-        $emoji = '🟡';
-        $suggestion = 'خنثی';
-    }
+    $suggestion = $discount >= 4 ? 'Buy' : 'Sell';
 
     $sign = $percent >= 0 ? '+' : '';
 
     // amount توی prices.php به ازای هر «میلی» و به ریاله؛ برای این خط به ازای هر گرم و به تومان نشون می‌دیم (×۱۰۰)
     $amount_per_gram_toman = abs($bubble['amount']) * 100;
 
-    return "$emoji حباب طلای ۱۸ عیار ($suggestion)\n"
-        . '(' . $sign . number_format($percent, 1) . "%)\n"
-        . number_format($amount_per_gram_toman) . " تومان\n\n";
+    return '🥇Bubble: ' . number_format($amount_per_gram_toman) . ' | ' . $sign . number_format($percent, 1) . '% | ' . $suggestion;
 }
 
-function send_price_update($gold, $silver, $usd, $ounce, $last_gold, $last_silver, $last_usd, $last_ounce, $bubble)
+function build_market_lines($prices, $last, $bubble)
 {
-    $text = "📊 بروزرسانی بازار\n\n";
-    $text .= format_line('🥇 طلا (تومان)', toman($gold), toman($last_gold));
-    $text .= format_line('💵 دلار (تومان)', toman($usd), toman($last_usd));
-    $text .= format_line('🌍 انس جهانی طلا', $ounce, $last_ounce, 2, '$');
-    $text .= format_line('🥈 نقره (تومان)', $silver, $last_silver);
-    $text .= format_bubble_line($bubble);
+    return [
+        format_line('🥇Gold', toman($prices['gold']), toman($last['gold'] ?? 0)),
+        format_line('🇺🇸 Dollar', toman($prices['usd']), toman($last['usd'] ?? 0)),
+        format_line('🇪🇺 EUR', toman($prices['eur']), toman($last['eur'] ?? 0)),
+        format_line('🇦🇪 AED', toman($prices['aed']), toman($last['aed'] ?? 0)),
+        format_line('🇨🇳 CNY', toman($prices['cny']), toman($last['cny'] ?? 0)),
+        format_line('🇹🇷 TRY', toman($prices['try']), toman($last['try'] ?? 0)),
+        format_line('🥈Silver', $prices['silver'], $last['silver'] ?? 0),
+        format_line('🥇Gold', $prices['ounce'], $last['ounce'] ?? 0, 2, '$'),
+        format_bubble_line($bubble),
+    ];
+}
+
+function send_price_update($prices, $last, $bubble)
+{
+    $text = implode(SEPARATOR, build_market_lines($prices, $last, $bubble));
 
     broadcast(trim($text));
 }
 
-function send_morning_summary($gold, $silver, $usd, $ounce, $last_gold, $last_silver, $last_usd, $last_ounce, $bubble)
+function send_last_update($prices, $last, $bubble, $time_label)
 {
-    $text = "😴 خلاصه‌ی این تایمی که خواب بودید:\n\n";
-    $text .= format_line('🥇 طلا (تومان)', toman($gold), toman($last_gold));
-    $text .= format_line('💵 دلار (تومان)', toman($usd), toman($last_usd));
-    $text .= format_line('🌍 انس جهانی طلا', $ounce, $last_ounce, 2, '$');
-    $text .= format_line('🥈 نقره (تومان)', $silver, $last_silver);
-    $text .= format_bubble_line($bubble);
-    $text .= "بریم که ببینیم امروز چه خبره...";
+    $text = "Now: $time_label | This is the latest update 🥱\n\n" . implode(SEPARATOR, build_market_lines($prices, $last, $bubble));
+
+    broadcast(trim($text));
+}
+
+function send_morning_summary($prices, $last, $bubble)
+{
+    $text = "😴 Overnight Summary\n\n" . implode(SEPARATOR, build_market_lines($prices, $last, $bubble))
+        . "\n\nLet's see what's up today...";
 
     broadcast(trim($text));
 }
 
 function send_monthly_average($month_label, $averages)
 {
-    $text = "📅 میانگین قیمت ماه $month_label\n\n"
-        . '🥇 طلا: ' . number_format(toman($averages['gold'])) . " تومان\n"
-        . '💵 دلار: ' . number_format(toman($averages['usd'])) . " تومان\n"
-        . '🌍 انس جهانی طلا: $' . number_format($averages['ounce'], 2) . "\n"
-        . '🥈 نقره: ' . number_format($averages['silver']) . " تومان";
+    $lines = [
+        format_line('🥇Gold', toman($averages['gold']), 0),
+        format_line('🇺🇸 Dollar', toman($averages['usd']), 0),
+        format_line('🇪🇺 EUR', toman($averages['eur']), 0),
+        format_line('🇦🇪 AED', toman($averages['aed']), 0),
+        format_line('🇨🇳 CNY', toman($averages['cny']), 0),
+        format_line('🇹🇷 TRY', toman($averages['try']), 0),
+        format_line('🥈Silver', $averages['silver'], 0),
+        format_line('🥇Gold', $averages['ounce'], 0, 2, '$'),
+    ];
+
+    $text = "📅 Monthly Average — $month_label\n\n" . implode(SEPARATOR, $lines);
 
     broadcast($text);
 }
 
 function send_weekly_summary($summary)
 {
-    $text = "🗓️ خلاصه هفتگی\n\n"
-        . "🥇 بالاترین قیمت طلا\n" . number_format(toman($summary['gold_high'])) . " تومان\n"
-        . "🥇 پایین‌ترین قیمت طلا\n" . number_format(toman($summary['gold_low'])) . " تومان\n\n"
-        . "💵 بالاترین قیمت دلار\n" . number_format(toman($summary['usd_high'])) . " تومان\n"
-        . "💵 پایین‌ترین قیمت دلار\n" . number_format(toman($summary['usd_low'])) . " تومان\n\n"
-        . "🌍 بالاترین قیمت انس جهانی طلا\n$" . number_format($summary['ounce_high'], 2) . "\n"
-        . "🌍 پایین‌ترین قیمت انس جهانی طلا\n$" . number_format($summary['ounce_low'], 2) . "\n\n"
-        . "🥈 بالاترین قیمت نقره\n" . number_format($summary['silver_high']) . " تومان\n"
-        . "🥈 پایین‌ترین قیمت نقره\n" . number_format($summary['silver_low']) . " تومان";
+    $lines = [
+        format_line('🥇Gold High', toman($summary['gold_high']), 0),
+        format_line('🥇Gold Low', toman($summary['gold_low']), 0),
+        format_line('🇺🇸 Dollar High', toman($summary['usd_high']), 0),
+        format_line('🇺🇸 Dollar Low', toman($summary['usd_low']), 0),
+        format_line('🇪🇺 EUR High', toman($summary['eur_high']), 0),
+        format_line('🇪🇺 EUR Low', toman($summary['eur_low']), 0),
+        format_line('🇦🇪 AED High', toman($summary['aed_high']), 0),
+        format_line('🇦🇪 AED Low', toman($summary['aed_low']), 0),
+        format_line('🇨🇳 CNY High', toman($summary['cny_high']), 0),
+        format_line('🇨🇳 CNY Low', toman($summary['cny_low']), 0),
+        format_line('🇹🇷 TRY High', toman($summary['try_high']), 0),
+        format_line('🇹🇷 TRY Low', toman($summary['try_low']), 0),
+        format_line('🥇Gold High', $summary['ounce_high'], 0, 2, '$'),
+        format_line('🥇Gold Low', $summary['ounce_low'], 0, 2, '$'),
+        format_line('🥈Silver High', $summary['silver_high'], 0),
+        format_line('🥈Silver Low', $summary['silver_low'], 0),
+    ];
+
+    $text = "🗓️ Weekly Summary\n\n" . implode(SEPARATOR, $lines);
 
     broadcast($text);
 }

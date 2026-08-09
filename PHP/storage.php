@@ -6,7 +6,7 @@
 
 function load_prices()
 {
-    $defaults = ['gold' => 0, 'silver' => 0, 'usd' => 0, 'ounce' => 0];
+    $defaults = ['gold' => 0, 'silver' => 0, 'usd' => 0, 'ounce' => 0, 'cny' => 0, 'aed' => 0, 'eur' => 0, 'try' => 0];
 
     if (!file_exists(PRICE_FILE)) {
         return $defaults;
@@ -15,17 +15,21 @@ function load_prices()
     return (json_decode(file_get_contents(PRICE_FILE), true) ?: []) + $defaults;
 }
 
-function save_prices($gold, $silver, $usd, $ounce)
+function save_prices($gold, $silver, $usd, $ounce, $cny, $aed, $eur, $try)
 {
     return file_put_contents(PRICE_FILE, json_encode([
         'gold' => $gold,
         'silver' => $silver,
         'usd' => $usd,
         'ounce' => $ounce,
+        'cny' => $cny,
+        'aed' => $aed,
+        'eur' => $eur,
+        'try' => $try,
     ])) !== false;
 }
 
-function append_data($gold, $silver, $usd, $ounce)
+function append_data($gold, $silver, $usd, $ounce, $cny, $aed, $eur, $try)
 {
     $entry = [
         'time' => tehran_now()->format(DATE_ATOM),
@@ -33,6 +37,10 @@ function append_data($gold, $silver, $usd, $ounce)
         'silver' => $silver,
         'usd' => $usd,
         'ounce' => $ounce,
+        'cny' => $cny,
+        'aed' => $aed,
+        'eur' => $eur,
+        'try' => $try,
     ];
 
     file_put_contents(DATA_FILE, json_encode($entry, JSON_UNESCAPED_UNICODE) . "\n", FILE_APPEND | LOCK_EX);
@@ -44,7 +52,7 @@ function month_average($year, $month)
         return null;
     }
 
-    $sums = ['gold' => 0, 'silver' => 0, 'usd' => 0, 'ounce' => 0];
+    $sums = ['gold' => 0, 'silver' => 0, 'usd' => 0, 'ounce' => 0, 'cny' => 0, 'aed' => 0, 'eur' => 0, 'try' => 0];
     $count = 0;
 
     foreach (file(DATA_FILE, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
@@ -60,6 +68,10 @@ function month_average($year, $month)
         $sums['silver'] += $entry['silver'];
         $sums['usd'] += $entry['usd'] ?? 0;
         $sums['ounce'] += $entry['ounce'] ?? 0;
+        $sums['cny'] += $entry['cny'] ?? 0;
+        $sums['aed'] += $entry['aed'] ?? 0;
+        $sums['eur'] += $entry['eur'] ?? 0;
+        $sums['try'] += $entry['try'] ?? 0;
         $count++;
     }
 
@@ -72,6 +84,10 @@ function month_average($year, $month)
         'silver' => (int) round($sums['silver'] / $count),
         'usd' => (int) round($sums['usd'] / $count),
         'ounce' => round($sums['ounce'] / $count, 2),
+        'cny' => (int) round($sums['cny'] / $count),
+        'aed' => (int) round($sums['aed'] / $count),
+        'eur' => (int) round($sums['eur'] / $count),
+        'try' => (int) round($sums['try'] / $count),
     ];
 }
 
@@ -81,7 +97,7 @@ function week_high_low($start_date, $end_date)
         return null;
     }
 
-    $prices = ['gold' => [], 'silver' => [], 'usd' => [], 'ounce' => []];
+    $prices = ['gold' => [], 'silver' => [], 'usd' => [], 'ounce' => [], 'cny' => [], 'aed' => [], 'eur' => [], 'try' => []];
 
     foreach (file(DATA_FILE, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
         $entry = json_decode($line, true);
@@ -95,6 +111,10 @@ function week_high_low($start_date, $end_date)
         $prices['silver'][] = $entry['silver'];
         $prices['usd'][] = $entry['usd'] ?? 0;
         $prices['ounce'][] = $entry['ounce'] ?? 0;
+        $prices['cny'][] = $entry['cny'] ?? 0;
+        $prices['aed'][] = $entry['aed'] ?? 0;
+        $prices['eur'][] = $entry['eur'] ?? 0;
+        $prices['try'][] = $entry['try'] ?? 0;
     }
 
     if (empty($prices['gold'])) {
@@ -110,6 +130,14 @@ function week_high_low($start_date, $end_date)
         'usd_low' => min($prices['usd']),
         'ounce_high' => max($prices['ounce']),
         'ounce_low' => min($prices['ounce']),
+        'cny_high' => max($prices['cny']),
+        'cny_low' => min($prices['cny']),
+        'aed_high' => max($prices['aed']),
+        'aed_low' => min($prices['aed']),
+        'eur_high' => max($prices['eur']),
+        'eur_low' => min($prices['eur']),
+        'try_high' => max($prices['try']),
+        'try_low' => min($prices['try']),
     ];
 }
 
