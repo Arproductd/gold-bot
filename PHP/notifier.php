@@ -74,9 +74,9 @@ function send_price_update($gold, $silver, $usd, $ounce, $last_gold, $last_silve
 {
     $text = "📊 بروزرسانی بازار\n\n";
     $text .= format_line('🥇 طلا (تومان)', toman($gold), toman($last_gold));
-    $text .= format_line('🥈 نقره (تومان)', $silver, $last_silver);
     $text .= format_line('💵 دلار (تومان)', toman($usd), toman($last_usd));
     $text .= format_line('🌍 انس جهانی طلا', $ounce, $last_ounce, 2, '$');
+    $text .= format_line('🥈 نقره (تومان)', $silver, $last_silver);
     $text .= format_bubble_line($bubble);
 
     broadcast(trim($text));
@@ -86,9 +86,9 @@ function send_morning_summary($gold, $silver, $usd, $ounce, $last_gold, $last_si
 {
     $text = "😴 خلاصه‌ی این تایمی که خواب بودید:\n\n";
     $text .= format_line('🥇 طلا (تومان)', toman($gold), toman($last_gold));
-    $text .= format_line('🥈 نقره (تومان)', $silver, $last_silver);
     $text .= format_line('💵 دلار (تومان)', toman($usd), toman($last_usd));
     $text .= format_line('🌍 انس جهانی طلا', $ounce, $last_ounce, 2, '$');
+    $text .= format_line('🥈 نقره (تومان)', $silver, $last_silver);
     $text .= format_bubble_line($bubble);
     $text .= "بریم که ببینیم امروز چه خبره...";
 
@@ -99,9 +99,9 @@ function send_monthly_average($month_label, $averages)
 {
     $text = "📅 میانگین قیمت ماه $month_label\n\n"
         . '🥇 طلا: ' . number_format(toman($averages['gold'])) . " تومان\n"
-        . '🥈 نقره: ' . number_format($averages['silver']) . " تومان\n"
         . '💵 دلار: ' . number_format(toman($averages['usd'])) . " تومان\n"
-        . '🌍 انس جهانی طلا: $' . number_format($averages['ounce'], 2);
+        . '🌍 انس جهانی طلا: $' . number_format($averages['ounce'], 2) . "\n"
+        . '🥈 نقره: ' . number_format($averages['silver']) . " تومان";
 
     broadcast($text);
 }
@@ -111,12 +111,12 @@ function send_weekly_summary($summary)
     $text = "🗓️ خلاصه هفتگی\n\n"
         . "🥇 بالاترین قیمت طلا\n" . number_format(toman($summary['gold_high'])) . " تومان\n"
         . "🥇 پایین‌ترین قیمت طلا\n" . number_format(toman($summary['gold_low'])) . " تومان\n\n"
-        . "🥈 بالاترین قیمت نقره\n" . number_format($summary['silver_high']) . " تومان\n"
-        . "🥈 پایین‌ترین قیمت نقره\n" . number_format($summary['silver_low']) . " تومان\n\n"
         . "💵 بالاترین قیمت دلار\n" . number_format(toman($summary['usd_high'])) . " تومان\n"
         . "💵 پایین‌ترین قیمت دلار\n" . number_format(toman($summary['usd_low'])) . " تومان\n\n"
         . "🌍 بالاترین قیمت انس جهانی طلا\n$" . number_format($summary['ounce_high'], 2) . "\n"
-        . "🌍 پایین‌ترین قیمت انس جهانی طلا\n$" . number_format($summary['ounce_low'], 2);
+        . "🌍 پایین‌ترین قیمت انس جهانی طلا\n$" . number_format($summary['ounce_low'], 2) . "\n\n"
+        . "🥈 بالاترین قیمت نقره\n" . number_format($summary['silver_high']) . " تومان\n"
+        . "🥈 پایین‌ترین قیمت نقره\n" . number_format($summary['silver_low']) . " تومان";
 
     broadcast($text);
 }
