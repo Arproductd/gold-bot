@@ -64,17 +64,19 @@ function main()
 {
     $now = tehran_now();
 
-    // بین ۰۰:۰۳ و ۰۷:۰۳ پیامی ارسال نمی‌شه؛ ۰۰:۰۳ خودش آخرین پیام شبه
-    if (is_quiet_hours($now)) {
-        return;
-    }
-
     $gold = get_gold_price();
     $silver = get_silver_price();
     $usd = get_usd_price();
     $ounce = get_ounce_price();
 
+    // دیتا همیشه (حتی توی ساعت سکوت) ثبت می‌شه تا میانگین ماهانه/خلاصه هفتگی درست باقی بمونه
     append_data($gold, $silver, $usd, $ounce);
+
+    // بین ۰۰:۰۳ و ۰۷:۰۳ پیامی ارسال نمی‌شه؛ ۰۰:۰۳ خودش آخرین پیام شبه
+    if (is_quiet_hours($now)) {
+        return;
+    }
+
     check_monthly_average();
     check_weekly_summary();
 
