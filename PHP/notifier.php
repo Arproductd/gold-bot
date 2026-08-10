@@ -50,10 +50,10 @@ function format_line($label, $price, $last_price, $decimals = 0, $prefix = '')
     }
 
     $diff = $price - $last_price;
-    $sign = $diff > 0 ? '+' : '';
+    $sign = $diff > 0 ? '+' : ($diff < 0 ? '-' : '');
 
     return $label . ': <s>' . $prefix . number_format($last_price, $decimals) . '</s> ➜ ' . $prefix . number_format($price, $decimals)
-        . ' | ' . $sign . $prefix . number_format($diff, $decimals);
+        . ' | ' . $sign . $prefix . number_format(abs($diff), $decimals);
 }
 
 function format_bubble_line($bubble)
@@ -82,7 +82,7 @@ function build_market_lines($prices, $last, $bubble)
         format_line('🇨🇳 CNY', toman($prices['cny']), toman($last['cny'] ?? 0)),
         format_line('🇹🇷 TRY', toman($prices['try']), toman($last['try'] ?? 0)),
         format_line('🥈Silver', $prices['silver'], $last['silver'] ?? 0),
-        format_line('🥇Gold', $prices['ounce'], $last['ounce'] ?? 0, 2, '$'),
+        format_line('🥇G-Ounce', $prices['ounce'], $last['ounce'] ?? 0, 2, '$'),
         format_bubble_line($bubble),
     ];
 }
@@ -119,7 +119,7 @@ function send_monthly_average($month_label, $averages)
         format_line('🇨🇳 CNY', toman($averages['cny']), 0),
         format_line('🇹🇷 TRY', toman($averages['try']), 0),
         format_line('🥈Silver', $averages['silver'], 0),
-        format_line('🥇Gold', $averages['ounce'], 0, 2, '$'),
+        format_line('🥇G-Ounce', $averages['ounce'], 0, 2, '$'),
     ];
 
     $text = "📅 Monthly Average — $month_label\n\n" . implode(SEPARATOR, $lines);
@@ -142,8 +142,8 @@ function send_weekly_summary($summary)
         format_line('🇨🇳 CNY Low', toman($summary['cny_low']), 0),
         format_line('🇹🇷 TRY High', toman($summary['try_high']), 0),
         format_line('🇹🇷 TRY Low', toman($summary['try_low']), 0),
-        format_line('🥇Gold High', $summary['ounce_high'], 0, 2, '$'),
-        format_line('🥇Gold Low', $summary['ounce_low'], 0, 2, '$'),
+        format_line('🥇G-Ounce High', $summary['ounce_high'], 0, 2, '$'),
+        format_line('🥇G-Ounce Low', $summary['ounce_low'], 0, 2, '$'),
         format_line('🥈Silver High', $summary['silver_high'], 0),
         format_line('🥈Silver Low', $summary['silver_low'], 0),
     ];
