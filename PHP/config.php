@@ -58,10 +58,19 @@ define('DATA_FILE', __DIR__ . '/data.jsonl');
 define('LAST_AVERAGE_FILE', __DIR__ . '/last_average.txt');
 define('LAST_WEEKLY_FILE', __DIR__ . '/last_weekly.txt');
 define('LAST_MORNING_FILE', __DIR__ . '/last_morning.txt');
+define('LAST_MARKET_OPEN_FILE', __DIR__ . '/last_market_open.txt');
+define('LAST_CURRENCY_UPDATE_FILE', __DIR__ . '/last_currency_update.txt');
 
 // بین این دو ساعت پیامی ارسال نمی‌شه؛ اولین پیام بعد از این بازه، خلاصه‌ی صبحگاهیه
 define('QUIET_HOURS_START', '00:03');
 define('QUIET_HOURS_END', '07:03');
+
+// ساعت باز شدن بازار؛ فقط شنبه تا چهارشنبه (پنجشنبه و جمعه بازار تعطیله)
+define('MARKET_OPEN_TIME', '11:03');
+
+// بین پایان سکوت و باز شدن بازار (۰۷:۰۳ تا ۱۱:۰۳)، پیام‌های عادی ارزها (دلار/یورو/درهم/یوان/لیر) رو
+// نشون نمی‌دن؛ به‌جاش دقیقاً همین ساعت‌ها یه پیام مخصوص فقط-ارزها می‌ره
+define('CURRENCY_UPDATE_TIMES', ['07:03', '10:03']);
 
 define('TEHRAN_TZ_NAME', 'Asia/Tehran');
 

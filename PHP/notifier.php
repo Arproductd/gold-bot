@@ -58,55 +58,81 @@ function format_line($label, $price, $last_price, $decimals = 0, $prefix = '')
 
 function format_bubble_line($bubble)
 {
-    // percent منفیه یعنی طلا ارزون‌تر از ارزش ذاتیشه؛ discount همون به‌صورت مثبت (درصد ارزونی)
     $percent = $bubble['percent'];
-    $discount = -$percent;
-
-    $suggestion = $discount >= 4 ? 'Buy' : 'Sell';
-
     $sign = $percent >= 0 ? '+' : '';
 
     // amount توی prices.php به ازای هر «میلی» و به ریاله؛ برای این خط به ازای هر گرم و به تومان نشون می‌دیم (×۱۰۰)
     $amount_per_gram_toman = abs($bubble['amount']) * 100;
 
-    return '🥇Bubble: ' . number_format($amount_per_gram_toman) . ' | ' . $sign . number_format($percent, 1) . '% | ' . $suggestion;
+    return '🥇Bubble: ' . number_format($amount_per_gram_toman) . ' | ' . $sign . number_format($percent, 1) . '%';
 }
 
-function build_market_lines($prices, $last, $bubble)
+function build_asset_lines($prices, $last, $bubble)
 {
     return [
         format_line('🥇Gold', toman($prices['gold']), toman($last['gold'] ?? 0)),
-        format_line('🇺🇸 Dollar', toman($prices['usd']), toman($last['usd'] ?? 0)),
-        format_line('🇪🇺 EUR', toman($prices['eur']), toman($last['eur'] ?? 0)),
-        format_line('🇦🇪 AED', toman($prices['aed']), toman($last['aed'] ?? 0)),
-        format_line('🇨🇳 CNY', toman($prices['cny']), toman($last['cny'] ?? 0)),
-        format_line('🇹🇷 TRY', toman($prices['try']), toman($last['try'] ?? 0)),
         format_line('🥈Silver', $prices['silver'], $last['silver'] ?? 0),
         format_line('🥇G-Ounce', $prices['ounce'], $last['ounce'] ?? 0, 2, '$'),
         format_bubble_line($bubble),
     ];
 }
 
-function send_price_update($prices, $last, $bubble)
+function build_currency_lines($prices, $last)
 {
-    $text = implode(SEPARATOR, build_market_lines($prices, $last, $bubble));
+    return [
+        format_line('🇺🇸 Dollar', toman($prices['usd']), toman($last['usd'] ?? 0)),
+        format_line('🇪🇺 EUR', toman($prices['eur']), toman($last['eur'] ?? 0)),
+        format_line('🇦🇪 AED', toman($prices['aed']), toman($last['aed'] ?? 0)),
+        format_line('🇨🇳 CNY', toman($prices['cny']), toman($last['cny'] ?? 0)),
+        format_line('🇹🇷 TRY', toman($prices['try']), toman($last['try'] ?? 0)),
+    ];
+}
+
+// $include_currencies=false توی بازه‌ی سکوتِ ارزها (۰۷:۰۳ تا ۱۱:۰۳) استفاده می‌شه؛ دلار/یورو/درهم/یوان/لیر
+// اون بازه فقط توی پیام مخصوص ساعت ۷:۰۳ و ۱۰:۰۳ ارسال می‌شن، نه توی هر تیک
+function build_market_lines($prices, $last, $bubble, $include_currencies = true)
+{
+    $lines = build_asset_lines($prices, $last, $bubble);
+
+    if ($include_currencies) {
+        array_splice($lines, 1, 0, build_currency_lines($prices, $last));
+    }
+
+    return $lines;
+}
+
+function send_price_update($prices, $last, $bubble, $include_currencies = true)
+{
+    $text = implode(SEPARATOR, build_market_lines($prices, $last, $bubble, $include_currencies));
 
     broadcast(trim($text));
 }
 
-function send_last_update($prices, $last, $bubble, $time_label)
+function send_last_update($prices, $last, $bubble, $time_label, $include_currencies = true)
 {
-    $text = "Now: $time_label | This is the latest update 🥱\n\n" . implode(SEPARATOR, build_market_lines($prices, $last, $bubble));
+    $text = "Now: $time_label | This is the latest update 🥱\n\n" . implode(SEPARATOR, build_market_lines($prices, $last, $bubble, $include_currencies));
 
     broadcast(trim($text));
 }
 
-function send_morning_summary($prices, $last, $bubble)
+function send_morning_summary($prices, $last, $bubble, $include_currencies = true)
 {
-    $text = "😴 Overnight Summary\n\n" . implode(SEPARATOR, build_market_lines($prices, $last, $bubble))
+    $text = "😴 Overnight Summary\n\n" . implode(SEPARATOR, build_market_lines($prices, $last, $bubble, $include_currencies))
         . "\n\nLet's see what's up today...";
 
     broadcast(trim($text));
+}
+
+function send_currency_update($prices, $last)
+{
+    $text = "💱 Currency Update\n\n" . implode(SEPARATOR, build_currency_lines($prices, $last));
+
+    broadcast(trim($text));
+}
+
+function send_market_open()
+{
+    broadcast('بازار باز شد...');
 }
 
 function send_monthly_average($month_label, $averages)
