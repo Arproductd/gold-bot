@@ -58,13 +58,25 @@ function format_line($label, $price, $last_price, $decimals = 0, $prefix = '')
 
 function format_bubble_line($bubble)
 {
+    // percent منفیه یعنی طلا ارزون‌تر از ارزش ذاتیشه؛ discount همون به‌صورت مثبت (درصد ارزونی)
     $percent = $bubble['percent'];
+    $discount = -$percent;
+
     $sign = $percent >= 0 ? '+' : '';
 
     // amount توی prices.php به ازای هر «میلی» و به ریاله؛ برای این خط به ازای هر گرم و به تومان نشون می‌دیم (×۱۰۰)
     $amount_per_gram_toman = abs($bubble['amount']) * 100;
 
-    return '🥇Bubble: ' . number_format($amount_per_gram_toman) . ' | ' . $sign . number_format($percent, 1) . '%';
+    $line = '🥇Bubble: ' . number_format($amount_per_gram_toman) . ' | ' . $sign . number_format($percent, 1) . '%';
+
+    // بین ۲٪ تا ۴٪ ارزونی، پیشنهادی داده نمی‌شه (منطقه‌ی خنثی)
+    if ($discount > 4) {
+        $line .= ' | Buy';
+    } elseif ($discount < 2) {
+        $line .= ' | Sell';
+    }
+
+    return $line;
 }
 
 function build_asset_lines($prices, $last, $bubble)
