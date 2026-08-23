@@ -78,6 +78,14 @@ function is_quiet_hours($now)
     return $time > QUIET_HOURS_START && $time < QUIET_HOURS_END;
 }
 
+// بین پایان سکوت (۰۷:۰۳) و باز شدن بازار (۱۱:۰۳)، فقط طلا/انس/نقره/حباب ارسال می‌شه، بدون ارزها
+function is_currency_muted($now)
+{
+    $time = $now->format('H:i');
+
+    return $time >= QUIET_HOURS_END && $time < MARKET_OPEN_TIME;
+}
+
 // روزی که برای تشخیص «اولین پیام بعد از سکوت» استفاده می‌شه؛ چون سکوت از ۰۰:۰۳ (بعد از عوض شدن
 // تاریخ) تا ۰۷:۰۳ ادامه داره، تا قبل از پایان سکوت هنوز «دیروز» حساب می‌شه، وگرنه دقیقه‌ی ۰۰:۰۳
 // (اولین اجرای غیرساکت روز جدید) به‌جای پیام مخصوص خودش، خلاصه‌ی صبحگاهی رو می‌گرفت
@@ -112,20 +120,21 @@ function main()
 
     $last = load_prices();
     $bubble = calculate_gold_bubble($prices['gold'], $prices['usd'], $prices['ounce']);
+    $include_currencies = !is_currency_muted($now);
 
     $today = morning_key_date($now);
     if (load_last_morning() !== $today) {
-        send_morning_summary($prices, $last, $bubble);
+        send_morning_summary($prices, $last, $bubble, $include_currencies);
         save_last_morning($today);
     } elseif ($now->format('H:i') === QUIET_HOURS_START) {
         // اگه روزی که داره تموم می‌شه جمعه‌ست، پیام آخر شب جاش رو به خلاصه‌ی هفتگی می‌ده
         $ending_weekday = (int) (new DateTime($today, new DateTimeZone(TEHRAN_TZ_NAME)))->format('N');
 
         if ($ending_weekday !== 5 || !send_friday_weekly_summary($today)) {
-            send_last_update($prices, $last, $bubble, $now->format('H:i'));
+            send_last_update($prices, $last, $bubble, $now->format('H:i'), $include_currencies);
         }
     } else {
-        send_price_update($prices, $last, $bubble);
+        send_price_update($prices, $last, $bubble, $include_currencies);
     }
 
     if (!save_prices($prices['gold'], $prices['silver'], $prices['usd'], $prices['ounce'], $prices['cny'], $prices['aed'], $prices['eur'], $prices['try'])) {
