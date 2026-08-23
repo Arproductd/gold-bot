@@ -78,32 +78,6 @@ function is_quiet_hours($now)
     return $time > QUIET_HOURS_START && $time < QUIET_HOURS_END;
 }
 
-// بین پایان سکوت (۰۷:۰۳) و باز شدن بازار (۱۱:۰۳)، ارزها توی پیام‌های عادی نشون داده نمی‌شن
-function is_currency_muted($now)
-{
-    $time = $now->format('H:i');
-
-    return $time >= QUIET_HOURS_END && $time < MARKET_OPEN_TIME;
-}
-
-function check_currency_update($now, $prices, $last)
-{
-    $time = $now->format('H:i');
-
-    if (!in_array($time, CURRENCY_UPDATE_TIMES, true)) {
-        return;
-    }
-
-    $key = $now->format('Y-m-d') . ' ' . $time;
-
-    if (load_last_currency_update() === $key) {
-        return;
-    }
-
-    send_currency_update($prices, $last);
-    save_last_currency_update($key);
-}
-
 // روزی که برای تشخیص «اولین پیام بعد از سکوت» استفاده می‌شه؛ چون سکوت از ۰۰:۰۳ (بعد از عوض شدن
 // تاریخ) تا ۰۷:۰۳ ادامه داره، تا قبل از پایان سکوت هنوز «دیروز» حساب می‌شه، وگرنه دقیقه‌ی ۰۰:۰۳
 // (اولین اجرای غیرساکت روز جدید) به‌جای پیام مخصوص خودش، خلاصه‌ی صبحگاهی رو می‌گرفت
@@ -139,22 +113,19 @@ function main()
     $last = load_prices();
     $bubble = calculate_gold_bubble($prices['gold'], $prices['usd'], $prices['ounce']);
 
-    check_currency_update($now, $prices, $last);
-    $include_currencies = !is_currency_muted($now);
-
     $today = morning_key_date($now);
     if (load_last_morning() !== $today) {
-        send_morning_summary($prices, $last, $bubble, $include_currencies);
+        send_morning_summary($prices, $last, $bubble);
         save_last_morning($today);
     } elseif ($now->format('H:i') === QUIET_HOURS_START) {
         // اگه روزی که داره تموم می‌شه جمعه‌ست، پیام آخر شب جاش رو به خلاصه‌ی هفتگی می‌ده
         $ending_weekday = (int) (new DateTime($today, new DateTimeZone(TEHRAN_TZ_NAME)))->format('N');
 
         if ($ending_weekday !== 5 || !send_friday_weekly_summary($today)) {
-            send_last_update($prices, $last, $bubble, $now->format('H:i'), $include_currencies);
+            send_last_update($prices, $last, $bubble, $now->format('H:i'));
         }
     } else {
-        send_price_update($prices, $last, $bubble, $include_currencies);
+        send_price_update($prices, $last, $bubble);
     }
 
     if (!save_prices($prices['gold'], $prices['silver'], $prices['usd'], $prices['ounce'], $prices['cny'], $prices['aed'], $prices['eur'], $prices['try'])) {

@@ -88,8 +88,6 @@ function build_currency_lines($prices, $last)
     ];
 }
 
-// $include_currencies=false توی بازه‌ی سکوتِ ارزها (۰۷:۰۳ تا ۱۱:۰۳) استفاده می‌شه؛ دلار/یورو/درهم/یوان/لیر
-// اون بازه فقط توی پیام مخصوص ساعت ۷:۰۳ و ۱۰:۰۳ ارسال می‌شن، نه توی هر تیک
 function build_market_lines($prices, $last, $bubble, $include_currencies = true)
 {
     $lines = build_asset_lines($prices, $last, $bubble);
@@ -119,13 +117,6 @@ function send_morning_summary($prices, $last, $bubble, $include_currencies = tru
 {
     $text = "😴 Overnight Summary\n\n" . implode(SEPARATOR, build_market_lines($prices, $last, $bubble, $include_currencies))
         . "\n\nLet's see what's up today...";
-
-    broadcast(trim($text));
-}
-
-function send_currency_update($prices, $last)
-{
-    $text = "💱 Currency Update\n\n" . implode(SEPARATOR, build_currency_lines($prices, $last));
 
     broadcast(trim($text));
 }
