@@ -87,9 +87,9 @@ function get_tgju_prices()
     ];
 }
 
-// ارزون‌ترین و گرون‌ترین قیمت طلای گرمی ۱۸ عیار بین پلتفرم‌های tablo.gold؛ اگه API در دسترس نبود
+// ارزون‌ترین قیمت طلای گرمی ۱۸ عیار بین پلتفرم‌های tablo.gold؛ اگه API در دسترس نبود
 // (کلید غلط، rate limit، قطعی) به‌جای اینکه کل پیام رو خراب کنه، این خط رو null برمی‌گردونه
-function get_tablo_gold_range()
+function get_tablo_cheapest_platform()
 {
     try {
         $data = http_get_json(TABLO_GOLD_URL, ['Authorization: Bearer ' . TABLO_API_KEY]);
@@ -109,22 +109,31 @@ function get_tablo_gold_range()
     }
 
     $cheapest = $platforms[0];
-    $priciest = $platforms[0];
 
     foreach ($platforms as $platform) {
         if ($platform['price_toman'] < $cheapest['price_toman']) {
             $cheapest = $platform;
         }
-
-        if ($platform['price_toman'] > $priciest['price_toman']) {
-            $priciest = $platform;
-        }
     }
 
-    return [
-        'cheapest' => ['platform' => $cheapest['platform_slug'], 'price' => $cheapest['price_toman']],
-        'priciest' => ['platform' => $priciest['platform_slug'], 'price' => $priciest['price_toman']],
-    ];
+    return ['platform' => $cheapest['platform_slug'], 'price' => $cheapest['price_toman']];
+}
+
+// نرخ مرجع مستقل طلای ۱۸ عیار (به تومان) از tablo.gold — همون عددیه که بالای صفحه‌ی tala-18 نشون داده می‌شه.
+// اگه API در دسترس نبود null برمی‌گرده و main.php قیمت milli.gold رو به‌جاش نشون می‌ده
+function get_tablo_reference_price()
+{
+    try {
+        $data = http_get_json(TABLO_REFERENCE_URL, ['Authorization: Bearer ' . TABLO_API_KEY]);
+    } catch (Throwable $e) {
+        error_log('دریافت نرخ مرجع tablo.gold ناموفق بود: ' . $e->getMessage());
+
+        return null;
+    }
+
+    $value = $data['reference_price']['value'] ?? null;
+
+    return is_numeric($value) ? (int) $value : null;
 }
 
 function calculate_gold_bubble($gold, $usd, $ounce)

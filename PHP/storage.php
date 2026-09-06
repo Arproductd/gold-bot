@@ -6,7 +6,7 @@
 
 function load_prices()
 {
-    $defaults = ['gold' => 0, 'silver' => 0, 'usd' => 0, 'ounce' => 0, 'cny' => 0, 'aed' => 0, 'eur' => 0, 'try' => 0];
+    $defaults = ['gold' => 0, 'gold_ref' => 0, 'silver' => 0, 'usd' => 0, 'ounce' => 0, 'cny' => 0, 'aed' => 0, 'eur' => 0, 'try' => 0];
 
     if (!file_exists(PRICE_FILE)) {
         return $defaults;
@@ -15,10 +15,13 @@ function load_prices()
     return (json_decode(file_get_contents(PRICE_FILE), true) ?: []) + $defaults;
 }
 
-function save_prices($gold, $silver, $usd, $ounce, $cny, $aed, $eur, $try)
+// $gold_ref: نرخ مرجع طلا که توی خط «🥇Gold» نشون داده می‌شه (از tablo.gold، یا در صورت قطعی API از milli.gold)؛
+// جدا از $gold نگه‌داشته می‌شه چون $gold همچنان برای محاسبه‌ی حباب لازمه
+function save_prices($gold, $gold_ref, $silver, $usd, $ounce, $cny, $aed, $eur, $try)
 {
     return file_put_contents(PRICE_FILE, json_encode([
         'gold' => $gold,
+        'gold_ref' => $gold_ref,
         'silver' => $silver,
         'usd' => $usd,
         'ounce' => $ounce,

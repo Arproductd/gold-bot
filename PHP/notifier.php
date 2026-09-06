@@ -67,29 +67,32 @@ function format_bubble_line($bubble)
     return '🥇Bubble: ' . number_format($amount_per_gram_toman) . ' | ' . $sign . number_format($percent, 1) . '%';
 }
 
-// $tablo از get_tablo_gold_range() میاد؛ ممکنه null باشه (API در دسترس نبود)، اون‌وقت این دو خط اصلاً اضافه نمی‌شن
-function format_tablo_range_lines($tablo)
+// $cheapest از get_tablo_cheapest_platform() میاد؛ ممکنه null باشه (API در دسترس نبود)، اون‌وقت این خط اصلاً اضافه نمی‌شه
+function format_tablo_low_line($cheapest)
 {
-    if ($tablo === null) {
-        return [];
+    if ($cheapest === null) {
+        return null;
     }
 
-    return [
-        'Low-' . ucfirst($tablo['cheapest']['platform']) . ': ' . number_format($tablo['cheapest']['price']),
-        'High-' . ucfirst($tablo['priciest']['platform']) . ': ' . number_format($tablo['priciest']['price']),
-    ];
+    return '🥇Gold-Low-' . ucfirst($cheapest['platform']) . ': ' . number_format($cheapest['price']);
 }
 
-function build_asset_lines($prices, $last, $bubble, $tablo = null)
+function build_asset_lines($prices, $last, $bubble, $cheapest = null)
 {
     $lines = [
-        format_line('🥇Gold', toman($prices['gold']), toman($last['gold'] ?? 0)),
+        format_line('🥇Gold', $prices['gold_ref'], $last['gold_ref'] ?? 0),
         format_line('🥈Silver', $prices['silver'], $last['silver'] ?? 0),
         format_line('🥇G-Ounce', $prices['ounce'], $last['ounce'] ?? 0, 2, '$'),
         format_bubble_line($bubble),
     ];
 
-    return array_merge($lines, format_tablo_range_lines($tablo));
+    $low_line = format_tablo_low_line($cheapest);
+
+    if ($low_line !== null) {
+        $lines[] = $low_line;
+    }
+
+    return $lines;
 }
 
 function build_currency_lines($prices, $last)
@@ -103,9 +106,9 @@ function build_currency_lines($prices, $last)
     ];
 }
 
-function build_market_lines($prices, $last, $bubble, $include_currencies = true, $tablo = null)
+function build_market_lines($prices, $last, $bubble, $include_currencies = true, $cheapest = null)
 {
-    $lines = build_asset_lines($prices, $last, $bubble, $tablo);
+    $lines = build_asset_lines($prices, $last, $bubble, $cheapest);
 
     if ($include_currencies) {
         array_splice($lines, 1, 0, build_currency_lines($prices, $last));
@@ -114,23 +117,23 @@ function build_market_lines($prices, $last, $bubble, $include_currencies = true,
     return $lines;
 }
 
-function send_price_update($prices, $last, $bubble, $include_currencies = true, $tablo = null)
+function send_price_update($prices, $last, $bubble, $include_currencies = true, $cheapest = null)
 {
-    $text = implode(SEPARATOR, build_market_lines($prices, $last, $bubble, $include_currencies, $tablo));
+    $text = implode(SEPARATOR, build_market_lines($prices, $last, $bubble, $include_currencies, $cheapest));
 
     broadcast(trim($text));
 }
 
-function send_last_update($prices, $last, $bubble, $time_label, $include_currencies = true, $tablo = null)
+function send_last_update($prices, $last, $bubble, $time_label, $include_currencies = true, $cheapest = null)
 {
-    $text = "Now: $time_label | This is the latest update 🥱\n\n" . implode(SEPARATOR, build_market_lines($prices, $last, $bubble, $include_currencies, $tablo));
+    $text = "Now: $time_label | This is the latest update 🥱\n\n" . implode(SEPARATOR, build_market_lines($prices, $last, $bubble, $include_currencies, $cheapest));
 
     broadcast(trim($text));
 }
 
-function send_morning_summary($prices, $last, $bubble, $include_currencies = true, $tablo = null)
+function send_morning_summary($prices, $last, $bubble, $include_currencies = true, $cheapest = null)
 {
-    $text = "😴 Overnight Summary\n\n" . implode(SEPARATOR, build_market_lines($prices, $last, $bubble, $include_currencies, $tablo))
+    $text = "😴 Overnight Summary\n\n" . implode(SEPARATOR, build_market_lines($prices, $last, $bubble, $include_currencies, $cheapest))
         . "\n\nLet's see what's up today...";
 
     broadcast(trim($text));
