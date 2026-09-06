@@ -48,6 +48,8 @@ if (BOT_TOKEN === '' || empty($GLOBALS['CHAT_IDS'])) {
 define('GOLD_URL', 'https://milli.gold/api/v1/public/milli-price/detail');
 define('SILVER_URL', 'https://melligold.com/api/v1/exchange/buy-sell-price/?format=json&symbol=XAG');
 define('TGJU_URL', 'https://call2.tgju.org/ajax.json?rev=HJogHjCOgu6awK2rIJN09u8MtOOogD3jj5knmgw12qF8oL9G43FTscPQs6pu');
+define('TABLO_GOLD_URL', 'https://tablo.gold/api/v1/gold-prices');
+define('TABLO_API_KEY', getenv('TABLO_API_KEY') ?: '');
 
 // برای محاسبه‌ی قیمت ذاتی طلای ۱۸ عیار از روی انس جهانی و نرخ دلار
 define('GRAMS_PER_TROY_OUNCE', 31.1034768);

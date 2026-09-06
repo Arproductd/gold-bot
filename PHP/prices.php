@@ -1,7 +1,7 @@
 <?php
 // گرفتن قیمت لحظه‌ای طلا و نقره از API‌های بیرونی.
 
-function http_get_json($url)
+function http_get_json($url, $headers = [])
 {
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -11,6 +11,11 @@ function http_get_json($url)
     curl_setopt($ch, CURLOPT_MAXREDIRS, 5);
     curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36');
     curl_setopt($ch, CURLOPT_COOKIEFILE, ''); // فعال‌سازی حافظه‌ی کوکی برای نگه‌داشتن کوکی بین ریدایرکت‌ها
+
+    if ($headers) {
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    }
+
     $response = curl_exec($ch);
 
     if ($response === false) {
@@ -79,6 +84,46 @@ function get_tgju_prices()
         'aed' => (int) extract_tgju_price($data, 'price_aed', TGJU_URL),
         'eur' => (int) extract_tgju_price($data, 'price_eur', TGJU_URL),
         'try' => (int) extract_tgju_price($data, 'price_try', TGJU_URL),
+    ];
+}
+
+// ارزون‌ترین و گرون‌ترین قیمت طلای گرمی ۱۸ عیار بین پلتفرم‌های tablo.gold؛ اگه API در دسترس نبود
+// (کلید غلط، rate limit، قطعی) به‌جای اینکه کل پیام رو خراب کنه، این خط رو null برمی‌گردونه
+function get_tablo_gold_range()
+{
+    try {
+        $data = http_get_json(TABLO_GOLD_URL, ['Authorization: Bearer ' . TABLO_API_KEY]);
+    } catch (Throwable $e) {
+        error_log('دریافت قیمت‌های tablo.gold ناموفق بود: ' . $e->getMessage());
+
+        return null;
+    }
+
+    $platforms = array_values(array_filter(
+        $data['platforms'] ?? [],
+        fn($p) => is_numeric($p['price_toman'] ?? null)
+    ));
+
+    if (empty($platforms)) {
+        return null;
+    }
+
+    $cheapest = $platforms[0];
+    $priciest = $platforms[0];
+
+    foreach ($platforms as $platform) {
+        if ($platform['price_toman'] < $cheapest['price_toman']) {
+            $cheapest = $platform;
+        }
+
+        if ($platform['price_toman'] > $priciest['price_toman']) {
+            $priciest = $platform;
+        }
+    }
+
+    return [
+        'cheapest' => ['platform' => $cheapest['platform_slug'], 'price' => $cheapest['price_toman']],
+        'priciest' => ['platform' => $priciest['platform_slug'], 'price' => $priciest['price_toman']],
     ];
 }
 

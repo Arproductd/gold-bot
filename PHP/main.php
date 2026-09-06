@@ -120,21 +120,22 @@ function main()
 
     $last = load_prices();
     $bubble = calculate_gold_bubble($prices['gold'], $prices['usd'], $prices['ounce']);
+    $tablo = get_tablo_gold_range();
     $include_currencies = !is_currency_muted($now);
 
     $today = morning_key_date($now);
     if (load_last_morning() !== $today) {
-        send_morning_summary($prices, $last, $bubble, $include_currencies);
+        send_morning_summary($prices, $last, $bubble, $include_currencies, $tablo);
         save_last_morning($today);
     } elseif ($now->format('H:i') === QUIET_HOURS_START) {
         // اگه روزی که داره تموم می‌شه جمعه‌ست، پیام آخر شب جاش رو به خلاصه‌ی هفتگی می‌ده
         $ending_weekday = (int) (new DateTime($today, new DateTimeZone(TEHRAN_TZ_NAME)))->format('N');
 
         if ($ending_weekday !== 5 || !send_friday_weekly_summary($today)) {
-            send_last_update($prices, $last, $bubble, $now->format('H:i'), $include_currencies);
+            send_last_update($prices, $last, $bubble, $now->format('H:i'), $include_currencies, $tablo);
         }
     } else {
-        send_price_update($prices, $last, $bubble, $include_currencies);
+        send_price_update($prices, $last, $bubble, $include_currencies, $tablo);
     }
 
     if (!save_prices($prices['gold'], $prices['silver'], $prices['usd'], $prices['ounce'], $prices['cny'], $prices['aed'], $prices['eur'], $prices['try'])) {
