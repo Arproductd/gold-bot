@@ -67,15 +67,17 @@ function format_bubble_line($bubble)
     return '🥇Bubble: ' . number_format($amount_per_gram_toman) . ' | ' . $sign . number_format($percent, 1) . '%';
 }
 
-// $tablo از get_tablo_gold_range() میاد؛ ممکنه null باشه (API در دسترس نبود)، اون‌وقت این خط اصلاً اضافه نمی‌شه
-function format_tablo_range_line($tablo)
+// $tablo از get_tablo_gold_range() میاد؛ ممکنه null باشه (API در دسترس نبود)، اون‌وقت این دو خط اصلاً اضافه نمی‌شن
+function format_tablo_range_lines($tablo)
 {
     if ($tablo === null) {
-        return null;
+        return [];
     }
 
-    return '🏷 Cheapest: ' . ucfirst($tablo['cheapest']['platform']) . ' ' . number_format($tablo['cheapest']['price'])
-        . ' | Priciest: ' . ucfirst($tablo['priciest']['platform']) . ' ' . number_format($tablo['priciest']['price']);
+    return [
+        'Low-' . ucfirst($tablo['cheapest']['platform']) . ': ' . number_format($tablo['cheapest']['price']),
+        'High-' . ucfirst($tablo['priciest']['platform']) . ': ' . number_format($tablo['priciest']['price']),
+    ];
 }
 
 function build_asset_lines($prices, $last, $bubble, $tablo = null)
@@ -87,13 +89,7 @@ function build_asset_lines($prices, $last, $bubble, $tablo = null)
         format_bubble_line($bubble),
     ];
 
-    $tablo_line = format_tablo_range_line($tablo);
-
-    if ($tablo_line !== null) {
-        $lines[] = $tablo_line;
-    }
-
-    return $lines;
+    return array_merge($lines, format_tablo_range_lines($tablo));
 }
 
 function build_currency_lines($prices, $last)
