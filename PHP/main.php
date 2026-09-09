@@ -8,7 +8,6 @@ require __DIR__ . '/jalali.php';
 require __DIR__ . '/prices.php';
 require __DIR__ . '/storage.php';
 require __DIR__ . '/notifier.php';
-require __DIR__ . '/diagnostics.php';
 
 function check_monthly_average()
 {
@@ -103,9 +102,6 @@ function morning_key_date($now)
 
 function main()
 {
-    // موقتی: یک بار وضعیت محیط اجرا رو به چت خصوصی می‌فرسته و بعدش دیگه هیچ‌وقت تکرار نمی‌شه
-    send_diagnostics_once();
-
     $now = tehran_now();
 
     $prices = [
