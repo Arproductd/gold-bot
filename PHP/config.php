@@ -14,6 +14,10 @@ if (file_exists($error_log_path) && filesize($error_log_path) > 2 * 1024 * 1024)
 
 ini_set('error_log', $error_log_path);
 
+// کرون با php-cgi اجرا می‌شه و اون به‌طور پیش‌فرض ۳۰ ثانیه سقف اجرا داره. با تلاش مجددِ
+// درخواست‌ها ممکنه از این سقف رد بشیم و وسط کار کشته بشیم، پس سقف برداشته می‌شه.
+set_time_limit(0);
+
 function load_env($path)
 {
     if (!file_exists($path)) {
@@ -75,6 +79,12 @@ define('QUIET_HOURS_END', '07:03');
 // تا MARKET_OPEN_DEADLINE هنوز فرستادنش معنی داره؛ بعد از اون «بازار باز شد» گمراه‌کننده‌ست
 define('MARKET_OPEN_TIME', '11:03');
 define('MARKET_OPEN_DEADLINE', '13:03');
+
+// شبکه‌ی سرور گاهی چند ثانیه قطع می‌شه (لاگ ۵ آگوست تلگرام و ۹ سپتامبر milli.gold).
+// یه قطعیِ گذرا نباید پیام اون ساعت رو بسوزونه، پس هر درخواست چند بار تلاش می‌شه.
+define('HTTP_TIMEOUT', 12);
+define('HTTP_MAX_ATTEMPTS', 3);
+define('HTTP_RETRY_DELAY', 2);
 
 define('TEHRAN_TZ_NAME', 'Asia/Tehran');
 

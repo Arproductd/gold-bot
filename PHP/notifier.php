@@ -4,27 +4,50 @@
 function telegram_send_message($chat_id, $text)
 {
     $url = 'https://api.telegram.org/bot' . BOT_TOKEN . '/sendMessage';
-
-    $ch = curl_init($url);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query([
+    $body = http_build_query([
         'chat_id' => $chat_id,
         'text' => $text,
         'parse_mode' => 'HTML',
-    ]));
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-    $response = curl_exec($ch);
-    $curl_error = curl_error($ch);
-    $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
+    ]);
 
-    if ($response === false) {
-        error_log("ارسال پیام تلگرام به $chat_id ناموفق بود (curl): $curl_error");
-    } elseif ($status < 200 || $status >= 300) {
-        error_log("ارسال پیام تلگرام به $chat_id ناموفق بود (HTTP $status): $response");
+    $last_error = '';
+
+    for ($attempt = 1; $attempt <= HTTP_MAX_ATTEMPTS; $attempt++) {
+        if ($attempt > 1) {
+            sleep(HTTP_RETRY_DELAY);
+        }
+
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, HTTP_TIMEOUT);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 8);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+
+        $response = curl_exec($ch);
+        $error = curl_error($ch);
+        $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+        if ($response !== false && $status >= 200 && $status < 300) {
+            if ($attempt > 1) {
+                error_log("ارسال پیام تلگرام به $chat_id در تلاش $attempt موفق شد");
+            }
+
+            return;
+        }
+
+        // پیام رد شده (آیدی اشتباه، HTML خراب) با تکرار درست نمی‌شه
+        if ($response !== false && $status >= 400 && $status < 500) {
+            error_log("ارسال پیام تلگرام به $chat_id رد شد (HTTP $status): $response");
+
+            return;
+        }
+
+        $last_error = $response === false ? "curl: $error" : "HTTP $status";
     }
+
+    error_log("ارسال پیام تلگرام به $chat_id بعد از " . HTTP_MAX_ATTEMPTS . " تلاش ناموفق بود — $last_error");
 }
 
 function broadcast($text)
