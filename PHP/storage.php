@@ -6,7 +6,7 @@
 
 function load_prices()
 {
-    $defaults = ['gold' => 0, 'gold_ref' => 0, 'silver' => 0, 'usd' => 0, 'ounce' => 0, 'cny' => 0, 'aed' => 0, 'eur' => 0, 'try' => 0];
+    $defaults = ['gold' => 0, 'gold_ref' => 0, 'silver' => 0, 'usd' => 0, 'ounce' => 0, 'cny' => 0, 'aed' => 0, 'eur' => 0, 'try' => 0, 'scale' => 0];
 
     if (!file_exists(PRICE_FILE)) {
         return $defaults;
@@ -14,14 +14,32 @@ function load_prices()
 
     $prices = (json_decode(file_get_contents(PRICE_FILE), true) ?: []) + $defaults;
 
-    // نسخه‌ی قبلی، gold_ref رو تومانِ هر گرم ذخیره می‌کرد (چند ده میلیون). حالا مثل بقیه‌ی
-    // خط‌ها تومانِ هر میلیه، پس مقدار قدیمی هم‌مقیاس می‌شه تا اولین پیام بعد از deploy
-    // یه سقوط جعلی ۲۴ میلیونی نشون نده
-    if ($prices['gold_ref'] >= 1000000) {
-        $prices['gold_ref'] = (int) round($prices['gold_ref'] / 1000);
+    if ((int) $prices['scale'] !== PRICE_SCALE_VERSION) {
+        $prices['gold_ref'] = migrate_gold_ref($prices['gold_ref']);
+        $prices['scale'] = PRICE_SCALE_VERSION;
     }
 
     return $prices;
+}
+
+// نسخه‌های قبلی gold_ref رو با دو مقیاس دیگه نوشته بودن: تومانِ هر گرم (۸ رقمی) و
+// یک‌دهمِ مقیاس فعلی (۵ رقمی). چون از این به بعد شماره‌ی مقیاس داخل price.json می‌شینه،
+// این حدس‌زدن از روی تعداد رقم فقط یک بار روی داده‌ی قدیمی اجرا می‌شه و بعدش هیچ‌وقت.
+function migrate_gold_ref($value)
+{
+    if ($value <= 0) {
+        return 0;
+    }
+
+    if ($value >= 1000000) {
+        return (int) round($value / 100);
+    }
+
+    if ($value < 100000) {
+        return (int) round($value * 10);
+    }
+
+    return (int) $value;
 }
 
 // $gold_ref: نرخ مرجع طلا که توی خط «🥇Gold» نشون داده می‌شه (از tablo.gold، یا در صورت قطعی API از milli.gold)؛
@@ -29,6 +47,7 @@ function load_prices()
 function save_prices($gold, $gold_ref, $silver, $usd, $ounce, $cny, $aed, $eur, $try)
 {
     return file_put_contents(PRICE_FILE, json_encode([
+        'scale' => PRICE_SCALE_VERSION,
         'gold' => $gold,
         'gold_ref' => $gold_ref,
         'silver' => $silver,
