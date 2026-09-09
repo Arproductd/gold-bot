@@ -208,3 +208,17 @@ function save_last_market_open($date)
 {
     file_put_contents(LAST_MARKET_OPEN_FILE, (string) $date);
 }
+
+function load_last_night()
+{
+    if (!file_exists(LAST_NIGHT_FILE)) {
+        return null;
+    }
+
+    return trim(file_get_contents(LAST_NIGHT_FILE));
+}
+
+function save_last_night($date)
+{
+    file_put_contents(LAST_NIGHT_FILE, (string) $date);
+}

@@ -49,7 +49,9 @@ function send_friday_weekly_summary($day)
     return $summary !== null;
 }
 
-// شنبه تا چهارشنبه بازار بازه؛ پنجشنبه(۴) و جمعه(۵) تعطیله
+// شنبه تا چهارشنبه بازار بازه؛ پنجشنبه(۴) و جمعه(۵) تعطیله.
+// روی «اولین اجرای بعد از ساعت بازگشایی» کار می‌کنه، نه دقیقاً سر همون دقیقه — قبلاً اگه
+// کرون سر اون دقیقه اجرا نمی‌شد (مثل کرون ساعتی فعلی) این پیام هیچ‌وقت نمی‌رفت
 function check_market_open($now)
 {
     $weekday = (int) $now->format('N');
@@ -58,7 +60,7 @@ function check_market_open($now)
         return;
     }
 
-    if ($now->format('H:i') !== MARKET_OPEN_TIME) {
+    if ($now->format('H:i') < MARKET_OPEN_TIME) {
         return;
     }
 
@@ -72,11 +74,11 @@ function check_market_open($now)
     save_last_market_open($today);
 }
 
-function is_quiet_hours($now)
+function in_quiet_window($now)
 {
     $time = $now->format('H:i');
 
-    return $time > QUIET_HOURS_START && $time < QUIET_HOURS_END;
+    return $time >= QUIET_HOURS_START && $time < QUIET_HOURS_END;
 }
 
 // بین پایان سکوت (۰۷:۰۳) و باز شدن بازار (۱۱:۰۳)، فقط طلا/انس/نقره/حباب ارسال می‌شه، بدون ارزها
@@ -114,8 +116,13 @@ function main()
     // دیتا همیشه (حتی توی ساعت سکوت) ثبت می‌شه تا میانگین ماهانه/خلاصه هفتگی درست باقی بمونه
     append_data($prices['gold'], $prices['silver'], $prices['usd'], $prices['ounce'], $prices['cny'], $prices['aed'], $prices['eur'], $prices['try']);
 
-    // بین ۰۰:۰۳ و ۰۷:۰۳ پیامی ارسال نمی‌شه؛ ۰۰:۰۳ خودش آخرین پیام شبه
-    if (is_quiet_hours($now)) {
+    // «روزی» که پیام به اسمش نوشته می‌شه؛ توی بازه‌ی سکوت هنوز روز قبل حساب می‌شه
+    $day = morning_key_date($now);
+
+    // اولین اجرای بعد از شروع سکوت، پیام آخر شبه (جمعه‌ها: خلاصه‌ی هفتگی)؛ باقی شب ساکته
+    $is_night_close = in_quiet_window($now) && load_last_night() !== $day;
+
+    if (in_quiet_window($now) && !$is_night_close) {
         return;
     }
 
@@ -130,17 +137,18 @@ function main()
     $prices['gold_ref'] = get_tablo_reference_price() ?? toman($prices['gold']);
     $include_currencies = !is_currency_muted($now);
 
-    $today = morning_key_date($now);
-    if (load_last_morning() !== $today) {
-        send_morning_summary($prices, $last, $include_currencies, $cheapest);
-        save_last_morning($today);
-    } elseif ($now->format('H:i') === QUIET_HOURS_START) {
+    if ($is_night_close) {
         // اگه روزی که داره تموم می‌شه جمعه‌ست، پیام آخر شب جاش رو به خلاصه‌ی هفتگی می‌ده
-        $ending_weekday = (int) (new DateTime($today, new DateTimeZone(TEHRAN_TZ_NAME)))->format('N');
+        $ending_weekday = (int) (new DateTime($day, new DateTimeZone(TEHRAN_TZ_NAME)))->format('N');
 
-        if ($ending_weekday !== 5 || !send_friday_weekly_summary($today)) {
+        if ($ending_weekday !== 5 || !send_friday_weekly_summary($day)) {
             send_last_update($prices, $last, $now->format('H:i'), $include_currencies, $cheapest);
         }
+
+        save_last_night($day);
+    } elseif (load_last_morning() !== $day) {
+        send_morning_summary($prices, $last, $include_currencies, $cheapest);
+        save_last_morning($day);
     } else {
         send_price_update($prices, $last, $include_currencies, $cheapest);
     }

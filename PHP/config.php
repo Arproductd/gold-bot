@@ -58,8 +58,11 @@ define('LAST_AVERAGE_FILE', __DIR__ . '/last_average.txt');
 define('LAST_WEEKLY_FILE', __DIR__ . '/last_weekly.txt');
 define('LAST_MORNING_FILE', __DIR__ . '/last_morning.txt');
 define('LAST_MARKET_OPEN_FILE', __DIR__ . '/last_market_open.txt');
+define('LAST_NIGHT_FILE', __DIR__ . '/last_night.txt');
 
-// بین این دو ساعت پیامی ارسال نمی‌شه؛ اولین پیام بعد از این بازه، خلاصه‌ی صبحگاهیه
+// بازه‌ی سکوت. اولین اجرای داخل این بازه پیام آخر شب رو می‌فرسته و بقیه‌ی شب ساکته؛
+// اولین اجرای بعد از این بازه، خلاصه‌ی صبحگاهیه. هیچ‌کدوم به دقیقه‌ی دقیق گره نخوردن،
+// پس هر زمان‌بندی‌ای برای کرون (ساعتی، ۱۵ دقیقه‌ای، ...) درست کار می‌کنه
 define('QUIET_HOURS_START', '00:03');
 define('QUIET_HOURS_END', '07:03');
 
