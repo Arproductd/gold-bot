@@ -93,30 +93,31 @@ function get_tablo_cheapest_platform()
 {
     try {
         $data = http_get_json(TABLO_GOLD_URL, ['Authorization: Bearer ' . TABLO_API_KEY]);
+
+        // شکل پاسخ هم چک می‌شه: هر چیزی جز آرایه (خطای API، تغییر فرمت) نباید کل پیام رو بندازه
+        $platforms = array_filter(
+            is_array($data['platforms'] ?? null) ? $data['platforms'] : [],
+            fn($p) => is_array($p) && is_numeric($p['price_toman'] ?? null) && ($p['platform_slug'] ?? '') !== ''
+        );
+
+        $cheapest = null;
+
+        foreach ($platforms as $platform) {
+            if ($cheapest === null || $platform['price_toman'] < $cheapest['price_toman']) {
+                $cheapest = $platform;
+            }
+        }
+
+        if ($cheapest === null) {
+            return null;
+        }
+
+        return ['platform' => (string) $cheapest['platform_slug'], 'price' => (float) $cheapest['price_toman']];
     } catch (Throwable $e) {
         error_log('دریافت قیمت‌های tablo.gold ناموفق بود: ' . $e->getMessage());
 
         return null;
     }
-
-    $platforms = array_values(array_filter(
-        $data['platforms'] ?? [],
-        fn($p) => is_numeric($p['price_toman'] ?? null)
-    ));
-
-    if (empty($platforms)) {
-        return null;
-    }
-
-    $cheapest = $platforms[0];
-
-    foreach ($platforms as $platform) {
-        if ($platform['price_toman'] < $cheapest['price_toman']) {
-            $cheapest = $platform;
-        }
-    }
-
-    return ['platform' => $cheapest['platform_slug'], 'price' => $cheapest['price_toman']];
 }
 
 // نرخ مرجع مستقل طلای ۱۸ عیار (به تومان) از tablo.gold — همون عددیه که بالای صفحه‌ی tala-18 نشون داده می‌شه.
@@ -125,15 +126,16 @@ function get_tablo_reference_price()
 {
     try {
         $data = http_get_json(TABLO_REFERENCE_URL, ['Authorization: Bearer ' . TABLO_API_KEY]);
+
+        // طبق مستندات، reference_price ممکنه null باشه
+        $value = $data['reference_price']['value'] ?? null;
+
+        return is_numeric($value) ? (int) $value : null;
     } catch (Throwable $e) {
         error_log('دریافت نرخ مرجع tablo.gold ناموفق بود: ' . $e->getMessage());
 
         return null;
     }
-
-    $value = $data['reference_price']['value'] ?? null;
-
-    return is_numeric($value) ? (int) $value : null;
 }
 
 function calculate_gold_bubble($gold, $usd, $ounce)
