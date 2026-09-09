@@ -58,7 +58,7 @@ define('TABLO_API_KEY', getenv('TABLO_API_KEY') ?: '');
 
 // نسخه‌ی مقیاسِ قیمت طلا که توی price.json ذخیره می‌شه. با بالا بردن این عدد،
 // مقدار ذخیره‌شده‌ی نسخه‌ی قبل یک بار تبدیل می‌شه و پیام بعد از deploy پرش جعلی نمی‌ده.
-define('PRICE_SCALE_VERSION', 2);
+define('PRICE_SCALE_VERSION', 3);
 
 define('PRICE_FILE', __DIR__ . '/price.json');
 define('DATA_FILE', __DIR__ . '/data.jsonl');

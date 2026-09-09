@@ -22,9 +22,9 @@ function load_prices()
     return $prices;
 }
 
-// نسخه‌های قبلی gold_ref رو با دو مقیاس دیگه نوشته بودن: تومانِ هر گرم (۸ رقمی) و
-// یک‌دهمِ مقیاس فعلی (۵ رقمی). چون از این به بعد شماره‌ی مقیاس داخل price.json می‌شینه،
-// این حدس‌زدن از روی تعداد رقم فقط یک بار روی داده‌ی قدیمی اجرا می‌شه و بعدش هیچ‌وقت.
+// نسخه‌های قبلی gold_ref رو با مقیاس‌های دیگه‌ای نوشته بودن: تومانِ هر گرم (۸ رقمی) و
+// تومانِ هر سوت (۶ رقمی). چون شماره‌ی مقیاس داخل price.json ذخیره می‌شه، این حدس‌زدن از
+// روی تعداد رقم فقط یک بار روی داده‌ی قدیمی اجرا می‌شه و بعدش هیچ‌وقت.
 function migrate_gold_ref($value)
 {
     if ($value <= 0) {
@@ -32,18 +32,16 @@ function migrate_gold_ref($value)
     }
 
     if ($value >= 1000000) {
-        return (int) round($value / 100);
+        return (int) round($value / 1000);
     }
 
-    if ($value < 100000) {
-        return (int) round($value * 10);
+    if ($value >= 100000) {
+        return (int) round($value / 10);
     }
 
     return (int) $value;
 }
 
-// $gold_ref: نرخ مرجع طلا که توی خط «🥇Gold» نشون داده می‌شه (از tablo.gold، یا در صورت قطعی API از milli.gold)؛
-// جدا از $gold نگه‌داشته می‌شه چون $gold همچنان برای محاسبه‌ی حباب لازمه
 function save_prices($gold, $gold_ref, $silver, $usd, $ounce, $cny, $aed, $eur, $try)
 {
     return file_put_contents(PRICE_FILE, json_encode([

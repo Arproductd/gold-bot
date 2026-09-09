@@ -57,8 +57,8 @@ function broadcast($text)
     }
 }
 
-// usd/eur/aed/cny/try (tgju) به ریال‌ان، برای نمایش تبدیل به تومان می‌شن (÷۱۰).
-// gold (milli.gold) از قبل تومانِ هر سوته و silver/ounce هم تومان و دلارن — دست‌نخورده می‌مونن.
+// usd/eur/aed/cny/try (tgju) به ریال‌ان و با ÷۱۰ تومان می‌شن. gold (milli.gold) تومانِ هر
+// سوته و با همون ÷۱۰ به مقیاس نمایشی (تومانِ هر میلی) می‌رسه. silver و ounce دست‌نخورده‌ان.
 function toman($rial)
 {
     return $rial / 10;
@@ -158,7 +158,7 @@ function send_market_open()
 function send_monthly_average($month_label, $averages)
 {
     $lines = [
-        format_line('🥇Gold', $averages['gold'], 0),
+        format_line('🥇Gold', toman($averages['gold']), 0),
         format_line('🇺🇸 Dollar', toman($averages['usd']), 0),
         format_line('🇪🇺 EUR', toman($averages['eur']), 0),
         format_line('🇦🇪 AED', toman($averages['aed']), 0),
@@ -176,8 +176,8 @@ function send_monthly_average($month_label, $averages)
 function send_weekly_summary($summary)
 {
     $lines = [
-        format_line('🥇Gold High', $summary['gold_high'], 0),
-        format_line('🥇Gold Low', $summary['gold_low'], 0),
+        format_line('🥇Gold High', toman($summary['gold_high']), 0),
+        format_line('🥇Gold Low', toman($summary['gold_low']), 0),
         format_line('🇺🇸 Dollar High', toman($summary['usd_high']), 0),
         format_line('🇺🇸 Dollar Low', toman($summary['usd_low']), 0),
         format_line('🇪🇺 EUR High', toman($summary['eur_high']), 0),
