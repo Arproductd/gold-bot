@@ -11,3 +11,5 @@ PHP/data.jsonl
 PHP/last_average.txt
 PHP/last_weekly.txt
 PHP/last_morning.txt
+
+PHP/.diag_sent
