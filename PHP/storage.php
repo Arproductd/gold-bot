@@ -12,7 +12,16 @@ function load_prices()
         return $defaults;
     }
 
-    return (json_decode(file_get_contents(PRICE_FILE), true) ?: []) + $defaults;
+    $prices = (json_decode(file_get_contents(PRICE_FILE), true) ?: []) + $defaults;
+
+    // نسخه‌ی قبلی، gold_ref رو تومانِ هر گرم ذخیره می‌کرد (چند ده میلیون). حالا مثل بقیه‌ی
+    // خط‌ها تومانِ هر میلیه، پس مقدار قدیمی هم‌مقیاس می‌شه تا اولین پیام بعد از deploy
+    // یه سقوط جعلی ۲۴ میلیونی نشون نده
+    if ($prices['gold_ref'] >= 1000000) {
+        $prices['gold_ref'] = (int) round($prices['gold_ref'] / 1000);
+    }
+
+    return $prices;
 }
 
 // $gold_ref: نرخ مرجع طلا که توی خط «🥇Gold» نشون داده می‌شه (از tablo.gold، یا در صورت قطعی API از milli.gold)؛

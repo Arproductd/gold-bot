@@ -122,9 +122,9 @@ function main()
     $bubble = calculate_gold_bubble($prices['gold'], $prices['usd'], $prices['ounce']);
     $cheapest = get_tablo_cheapest_platform();
     // نرخ مرجع tablo.gold برای خط «🥇Gold»؛ اگه در دسترس نبود قیمت milli.gold جاش می‌شینه.
-    // milli.gold به ازای هر «میلی» قیمت می‌ده، پس باید به تومانِ هر گرم تبدیل بشه وگرنه
-    // با هر بار قطع شدن API، عدد این خط هزار برابر کوچیک می‌شه
-    $prices['gold_ref'] = get_tablo_reference_price() ?? gold_gram_toman($prices['gold']);
+    // هر دو به مقیاس نمایشی ربات (تومانِ هر «میلی») تبدیل شدن، پس قطع شدن API فقط منبع رو
+    // عوض می‌کنه، نه بزرگیِ عدد رو
+    $prices['gold_ref'] = get_tablo_reference_price() ?? toman($prices['gold']);
     $include_currencies = !is_currency_muted($now);
 
     $today = morning_key_date($now);

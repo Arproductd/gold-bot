@@ -41,13 +41,6 @@ function toman($rial)
     return $rial / 10;
 }
 
-// milli.gold قیمت رو به ازای هر «میلی» (یک‌هزارم گرم) و به ریال می‌ده. نرخ مرجع و قیمت پلتفرم‌های
-// tablo.gold تومانِ هر «گرم»‌ان، پس هر جا این دو کنار هم نشون داده می‌شن باید هم‌واحد بشن.
-function gold_gram_toman($rial_per_milli)
-{
-    return toman($rial_per_milli) * 1000;
-}
-
 const SEPARATOR = "\n—————\n";
 
 function format_line($label, $price, $last_price, $decimals = 0, $prefix = '')
@@ -154,7 +147,7 @@ function send_market_open()
 function send_monthly_average($month_label, $averages)
 {
     $lines = [
-        format_line('🥇Gold', gold_gram_toman($averages['gold']), 0),
+        format_line('🥇Gold', toman($averages['gold']), 0),
         format_line('🇺🇸 Dollar', toman($averages['usd']), 0),
         format_line('🇪🇺 EUR', toman($averages['eur']), 0),
         format_line('🇦🇪 AED', toman($averages['aed']), 0),
@@ -172,8 +165,8 @@ function send_monthly_average($month_label, $averages)
 function send_weekly_summary($summary)
 {
     $lines = [
-        format_line('🥇Gold High', gold_gram_toman($summary['gold_high']), 0),
-        format_line('🥇Gold Low', gold_gram_toman($summary['gold_low']), 0),
+        format_line('🥇Gold High', toman($summary['gold_high']), 0),
+        format_line('🥇Gold Low', toman($summary['gold_low']), 0),
         format_line('🇺🇸 Dollar High', toman($summary['usd_high']), 0),
         format_line('🇺🇸 Dollar Low', toman($summary['usd_low']), 0),
         format_line('🇪🇺 EUR High', toman($summary['eur_high']), 0),

@@ -87,6 +87,14 @@ function get_tgju_prices()
     ];
 }
 
+// tablo.gold قیمت‌ها رو تومانِ هر «گرم» می‌ده، ولی مقیاس نمایشی ربات (از milli.gold) تومانِ هر
+// «میلی» یعنی یک‌هزارم گرمه. همه‌ی اعداد تومنن و فقط مقیاس فرق داره، پس همین‌جا سرِ منبع
+// هم‌مقیاس می‌شن تا خط‌های پیام و مقدار ذخیره‌شده توی price.json با هم جور بمونن.
+function tablo_to_bot_scale($toman_per_gram)
+{
+    return (int) round($toman_per_gram / 1000);
+}
+
 // ارزون‌ترین قیمت طلای گرمی ۱۸ عیار بین پلتفرم‌های tablo.gold؛ اگه API در دسترس نبود
 // (کلید غلط، rate limit، قطعی) به‌جای اینکه کل پیام رو خراب کنه، این خط رو null برمی‌گردونه
 function get_tablo_cheapest_platform()
@@ -112,7 +120,10 @@ function get_tablo_cheapest_platform()
             return null;
         }
 
-        return ['platform' => (string) $cheapest['platform_slug'], 'price' => (float) $cheapest['price_toman']];
+        return [
+            'platform' => (string) $cheapest['platform_slug'],
+            'price' => tablo_to_bot_scale($cheapest['price_toman']),
+        ];
     } catch (Throwable $e) {
         error_log('دریافت قیمت‌های tablo.gold ناموفق بود: ' . $e->getMessage());
 
@@ -130,7 +141,7 @@ function get_tablo_reference_price()
         // طبق مستندات، reference_price ممکنه null باشه
         $value = $data['reference_price']['value'] ?? null;
 
-        return is_numeric($value) ? (int) $value : null;
+        return is_numeric($value) ? tablo_to_bot_scale($value) : null;
     } catch (Throwable $e) {
         error_log('دریافت نرخ مرجع tablo.gold ناموفق بود: ' . $e->getMessage());
 
