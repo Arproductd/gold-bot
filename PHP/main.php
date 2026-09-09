@@ -119,7 +119,6 @@ function main()
     check_market_open($now);
 
     $last = load_prices();
-    $bubble = calculate_gold_bubble($prices['gold'], $prices['usd'], $prices['ounce']);
     $cheapest = get_tablo_cheapest_platform();
     // نرخ مرجع tablo.gold برای خط «🥇Gold»؛ اگه در دسترس نبود قیمت milli.gold جاش می‌شینه.
     // هر دو به مقیاس نمایشی ربات (تومانِ هر «میلی») تبدیل شدن، پس قطع شدن API فقط منبع رو
@@ -129,17 +128,17 @@ function main()
 
     $today = morning_key_date($now);
     if (load_last_morning() !== $today) {
-        send_morning_summary($prices, $last, $bubble, $include_currencies, $cheapest);
+        send_morning_summary($prices, $last, $include_currencies, $cheapest);
         save_last_morning($today);
     } elseif ($now->format('H:i') === QUIET_HOURS_START) {
         // اگه روزی که داره تموم می‌شه جمعه‌ست، پیام آخر شب جاش رو به خلاصه‌ی هفتگی می‌ده
         $ending_weekday = (int) (new DateTime($today, new DateTimeZone(TEHRAN_TZ_NAME)))->format('N');
 
         if ($ending_weekday !== 5 || !send_friday_weekly_summary($today)) {
-            send_last_update($prices, $last, $bubble, $now->format('H:i'), $include_currencies, $cheapest);
+            send_last_update($prices, $last, $now->format('H:i'), $include_currencies, $cheapest);
         }
     } else {
-        send_price_update($prices, $last, $bubble, $include_currencies, $cheapest);
+        send_price_update($prices, $last, $include_currencies, $cheapest);
     }
 
     if (!save_prices($prices['gold'], $prices['gold_ref'], $prices['silver'], $prices['usd'], $prices['ounce'], $prices['cny'], $prices['aed'], $prices['eur'], $prices['try'])) {

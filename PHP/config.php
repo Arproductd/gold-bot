@@ -52,10 +52,6 @@ define('TABLO_GOLD_URL', 'https://tablo.gold/api/v1/gold-prices');
 define('TABLO_REFERENCE_URL', 'https://tablo.gold/api/v1/reference');
 define('TABLO_API_KEY', getenv('TABLO_API_KEY') ?: '');
 
-// برای محاسبه‌ی قیمت ذاتی طلای ۱۸ عیار از روی انس جهانی و نرخ دلار
-define('GRAMS_PER_TROY_OUNCE', 31.1034768);
-define('GOLD_PURITY_18K', 0.75);
-
 define('PRICE_FILE', __DIR__ . '/price.json');
 define('DATA_FILE', __DIR__ . '/data.jsonl');
 define('LAST_AVERAGE_FILE', __DIR__ . '/last_average.txt');

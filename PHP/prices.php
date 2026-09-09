@@ -148,20 +148,3 @@ function get_tablo_reference_price()
         return null;
     }
 }
-
-function calculate_gold_bubble($gold, $usd, $ounce)
-{
-    // milli.gold قیمت رو به ازای هر «میلی» (۱ میلی‌گرم) می‌ده، نه هر گرم؛ برای همین قیمت ذاتی هم به میلی‌گرم تبدیل می‌شه
-    $intrinsic = ($ounce / GRAMS_PER_TROY_OUNCE) * $usd * GOLD_PURITY_18K / 1000;
-
-    if ($intrinsic <= 0) {
-        return ['amount' => 0, 'percent' => 0.0];
-    }
-
-    $amount = $gold - $intrinsic;
-
-    return [
-        'amount' => (int) round($amount),
-        'percent' => round($amount / $intrinsic * 100, 1),
-    ];
-}

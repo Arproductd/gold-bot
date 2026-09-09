@@ -56,17 +56,6 @@ function format_line($label, $price, $last_price, $decimals = 0, $prefix = '')
         . ' | ' . $sign . $prefix . number_format(abs($diff), $decimals);
 }
 
-function format_bubble_line($bubble)
-{
-    $percent = $bubble['percent'];
-    $sign = $percent >= 0 ? '+' : '';
-
-    // amount توی prices.php به ازای هر «میلی» و به ریاله؛ برای این خط به ازای هر گرم و به تومان نشون می‌دیم (×۱۰۰)
-    $amount_per_gram_toman = abs($bubble['amount']) * 100;
-
-    return '🥇Bubble: ' . number_format($amount_per_gram_toman) . ' | ' . $sign . number_format($percent, 1) . '%';
-}
-
 // $cheapest از get_tablo_cheapest_platform() میاد؛ ممکنه null باشه (API در دسترس نبود)، اون‌وقت این خط اصلاً اضافه نمی‌شه
 function format_tablo_low_line($cheapest)
 {
@@ -77,13 +66,12 @@ function format_tablo_low_line($cheapest)
     return '🥇Gold-Low-' . ucfirst($cheapest['platform']) . ': ' . number_format($cheapest['price']);
 }
 
-function build_asset_lines($prices, $last, $bubble, $cheapest = null)
+function build_asset_lines($prices, $last, $cheapest = null)
 {
     $lines = [
         format_line('🥇Gold', $prices['gold_ref'], $last['gold_ref'] ?? 0),
         format_line('🥈Silver', $prices['silver'], $last['silver'] ?? 0),
         format_line('🥇G-Ounce', $prices['ounce'], $last['ounce'] ?? 0, 2, '$'),
-        format_bubble_line($bubble),
     ];
 
     $low_line = format_tablo_low_line($cheapest);
@@ -106,9 +94,9 @@ function build_currency_lines($prices, $last)
     ];
 }
 
-function build_market_lines($prices, $last, $bubble, $include_currencies = true, $cheapest = null)
+function build_market_lines($prices, $last, $include_currencies = true, $cheapest = null)
 {
-    $lines = build_asset_lines($prices, $last, $bubble, $cheapest);
+    $lines = build_asset_lines($prices, $last, $cheapest);
 
     if ($include_currencies) {
         array_splice($lines, 1, 0, build_currency_lines($prices, $last));
@@ -117,23 +105,23 @@ function build_market_lines($prices, $last, $bubble, $include_currencies = true,
     return $lines;
 }
 
-function send_price_update($prices, $last, $bubble, $include_currencies = true, $cheapest = null)
+function send_price_update($prices, $last, $include_currencies = true, $cheapest = null)
 {
-    $text = implode(SEPARATOR, build_market_lines($prices, $last, $bubble, $include_currencies, $cheapest));
+    $text = implode(SEPARATOR, build_market_lines($prices, $last, $include_currencies, $cheapest));
 
     broadcast(trim($text));
 }
 
-function send_last_update($prices, $last, $bubble, $time_label, $include_currencies = true, $cheapest = null)
+function send_last_update($prices, $last, $time_label, $include_currencies = true, $cheapest = null)
 {
-    $text = "Now: $time_label | This is the latest update 🥱\n\n" . implode(SEPARATOR, build_market_lines($prices, $last, $bubble, $include_currencies, $cheapest));
+    $text = "Now: $time_label | This is the latest update 🥱\n\n" . implode(SEPARATOR, build_market_lines($prices, $last, $include_currencies, $cheapest));
 
     broadcast(trim($text));
 }
 
-function send_morning_summary($prices, $last, $bubble, $include_currencies = true, $cheapest = null)
+function send_morning_summary($prices, $last, $include_currencies = true, $cheapest = null)
 {
-    $text = "😴 Overnight Summary\n\n" . implode(SEPARATOR, build_market_lines($prices, $last, $bubble, $include_currencies, $cheapest))
+    $text = "😴 Overnight Summary\n\n" . implode(SEPARATOR, build_market_lines($prices, $last, $include_currencies, $cheapest))
         . "\n\nLet's see what's up today...";
 
     broadcast(trim($text));
