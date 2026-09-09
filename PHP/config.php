@@ -70,8 +70,11 @@ define('LAST_NIGHT_FILE', __DIR__ . '/last_night.txt');
 define('QUIET_HOURS_START', '00:03');
 define('QUIET_HOURS_END', '07:03');
 
-// ساعت باز شدن بازار؛ فقط شنبه تا چهارشنبه (پنجشنبه و جمعه بازار تعطیله)
+// ساعت باز شدن بازار؛ فقط شنبه تا چهارشنبه (پنجشنبه و جمعه بازار تعطیله).
+// اگه اجرا از ساعت بازگشایی عقب بیفته (کرون دیر اجرا بشه یا فایل نشانه پاک شده باشه)
+// تا MARKET_OPEN_DEADLINE هنوز فرستادنش معنی داره؛ بعد از اون «بازار باز شد» گمراه‌کننده‌ست
 define('MARKET_OPEN_TIME', '11:03');
+define('MARKET_OPEN_DEADLINE', '13:03');
 
 define('TEHRAN_TZ_NAME', 'Asia/Tehran');
 

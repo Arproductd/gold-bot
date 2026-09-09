@@ -50,7 +50,8 @@ function send_friday_weekly_summary($day)
 
 // شنبه تا چهارشنبه بازار بازه؛ پنجشنبه(۴) و جمعه(۵) تعطیله.
 // روی «اولین اجرای بعد از ساعت بازگشایی» کار می‌کنه، نه دقیقاً سر همون دقیقه — قبلاً اگه
-// کرون سر اون دقیقه اجرا نمی‌شد (مثل کرون ساعتی فعلی) این پیام هیچ‌وقت نمی‌رفت
+// کرون سر اون دقیقه اجرا نمی‌شد (مثل کرون ساعتی فعلی) این پیام هیچ‌وقت نمی‌رفت.
+// ولی بی‌کران هم نیست: بعد از مهلت، دیگه فرستاده نمی‌شه
 function check_market_open($now)
 {
     $weekday = (int) $now->format('N');
@@ -59,7 +60,9 @@ function check_market_open($now)
         return;
     }
 
-    if ($now->format('H:i') < MARKET_OPEN_TIME) {
+    $time = $now->format('H:i');
+
+    if ($time < MARKET_OPEN_TIME || $time >= MARKET_OPEN_DEADLINE) {
         return;
     }
 
