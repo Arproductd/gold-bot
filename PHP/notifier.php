@@ -94,6 +94,7 @@ function build_asset_lines($prices, $last, $cheapest = null)
     $lines = [
         format_line('🥇Gold', $prices['gold_ref'], $last['gold_ref'] ?? 0),
         format_line('🥈Silver', $prices['silver'], $last['silver'] ?? 0),
+        format_line('🥉Copper', $prices['copper'], $last['copper'] ?? 0),
         format_line('🥇G-Ounce', $prices['ounce'], $last['ounce'] ?? 0, 2, '$'),
     ];
 
@@ -155,18 +156,32 @@ function send_market_open()
     broadcast('بازار باز شد...');
 }
 
+// یک خط گزارش، یا null اگه اون قیمت توی بازه‌ی موردنظر اصلاً ثبت نشده باشه (مثلاً مس
+// که تازه اضافه شده و توی داده‌ی قدیمی وجود نداره). $rial یعنی مقدار باید به تومان بشه.
+function summary_line($values, $key, $label, $rial, $decimals = 0, $prefix = '')
+{
+    if (!isset($values[$key])) {
+        return null;
+    }
+
+    $value = $rial ? toman($values[$key]) : $values[$key];
+
+    return format_line($label, $value, 0, $decimals, $prefix);
+}
+
 function send_monthly_average($month_label, $averages)
 {
-    $lines = [
-        format_line('🥇Gold', toman($averages['gold']), 0),
-        format_line('🇺🇸 Dollar', toman($averages['usd']), 0),
-        format_line('🇪🇺 EUR', toman($averages['eur']), 0),
-        format_line('🇦🇪 AED', toman($averages['aed']), 0),
-        format_line('🇨🇳 CNY', toman($averages['cny']), 0),
-        format_line('🇹🇷 TRY', toman($averages['try']), 0),
-        format_line('🥈Silver', $averages['silver'], 0),
-        format_line('🥇G-Ounce', $averages['ounce'], 0, 2, '$'),
-    ];
+    $lines = array_filter([
+        summary_line($averages, 'gold', '🥇Gold', true),
+        summary_line($averages, 'usd', '🇺🇸 Dollar', true),
+        summary_line($averages, 'eur', '🇪🇺 EUR', true),
+        summary_line($averages, 'aed', '🇦🇪 AED', true),
+        summary_line($averages, 'cny', '🇨🇳 CNY', true),
+        summary_line($averages, 'try', '🇹🇷 TRY', true),
+        summary_line($averages, 'silver', '🥈Silver', false),
+        summary_line($averages, 'copper', '🥉Copper', false),
+        summary_line($averages, 'ounce', '🥇G-Ounce', false, 2, '$'),
+    ]);
 
     $text = "📅 Monthly Average — $month_label\n\n" . implode(SEPARATOR, $lines);
 
@@ -175,24 +190,26 @@ function send_monthly_average($month_label, $averages)
 
 function send_weekly_summary($summary)
 {
-    $lines = [
-        format_line('🥇Gold High', toman($summary['gold_high']), 0),
-        format_line('🥇Gold Low', toman($summary['gold_low']), 0),
-        format_line('🇺🇸 Dollar High', toman($summary['usd_high']), 0),
-        format_line('🇺🇸 Dollar Low', toman($summary['usd_low']), 0),
-        format_line('🇪🇺 EUR High', toman($summary['eur_high']), 0),
-        format_line('🇪🇺 EUR Low', toman($summary['eur_low']), 0),
-        format_line('🇦🇪 AED High', toman($summary['aed_high']), 0),
-        format_line('🇦🇪 AED Low', toman($summary['aed_low']), 0),
-        format_line('🇨🇳 CNY High', toman($summary['cny_high']), 0),
-        format_line('🇨🇳 CNY Low', toman($summary['cny_low']), 0),
-        format_line('🇹🇷 TRY High', toman($summary['try_high']), 0),
-        format_line('🇹🇷 TRY Low', toman($summary['try_low']), 0),
-        format_line('🥇G-Ounce High', $summary['ounce_high'], 0, 2, '$'),
-        format_line('🥇G-Ounce Low', $summary['ounce_low'], 0, 2, '$'),
-        format_line('🥈Silver High', $summary['silver_high'], 0),
-        format_line('🥈Silver Low', $summary['silver_low'], 0),
-    ];
+    $lines = array_filter([
+        summary_line($summary, 'gold_high', '🥇Gold High', true),
+        summary_line($summary, 'gold_low', '🥇Gold Low', true),
+        summary_line($summary, 'usd_high', '🇺🇸 Dollar High', true),
+        summary_line($summary, 'usd_low', '🇺🇸 Dollar Low', true),
+        summary_line($summary, 'eur_high', '🇪🇺 EUR High', true),
+        summary_line($summary, 'eur_low', '🇪🇺 EUR Low', true),
+        summary_line($summary, 'aed_high', '🇦🇪 AED High', true),
+        summary_line($summary, 'aed_low', '🇦🇪 AED Low', true),
+        summary_line($summary, 'cny_high', '🇨🇳 CNY High', true),
+        summary_line($summary, 'cny_low', '🇨🇳 CNY Low', true),
+        summary_line($summary, 'try_high', '🇹🇷 TRY High', true),
+        summary_line($summary, 'try_low', '🇹🇷 TRY Low', true),
+        summary_line($summary, 'ounce_high', '🥇G-Ounce High', false, 2, '$'),
+        summary_line($summary, 'ounce_low', '🥇G-Ounce Low', false, 2, '$'),
+        summary_line($summary, 'silver_high', '🥈Silver High', false),
+        summary_line($summary, 'silver_low', '🥈Silver Low', false),
+        summary_line($summary, 'copper_high', '🥉Copper High', false),
+        summary_line($summary, 'copper_low', '🥉Copper Low', false),
+    ]);
 
     $text = "🗓️ Weekly Summary\n\n" . implode(SEPARATOR, $lines);
 

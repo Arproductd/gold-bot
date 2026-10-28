@@ -110,10 +110,11 @@ function main()
     $prices = [
         'gold' => get_gold_price(),
         'silver' => get_silver_price(),
+        'copper' => get_copper_price(),
     ] + get_tgju_prices();
 
     // دیتا همیشه (حتی توی ساعت سکوت) ثبت می‌شه تا میانگین ماهانه/خلاصه هفتگی درست باقی بمونه
-    append_data($prices['gold'], $prices['silver'], $prices['usd'], $prices['ounce'], $prices['cny'], $prices['aed'], $prices['eur'], $prices['try']);
+    append_data($prices);
 
     // «روزی» که پیام به اسمش نوشته می‌شه؛ توی بازه‌ی سکوت هنوز روز قبل حساب می‌شه
     $day = morning_key_date($now);
@@ -152,7 +153,7 @@ function main()
         send_price_update($prices, $last, $include_currencies, $cheapest);
     }
 
-    if (!save_prices($prices['gold'], $prices['gold_ref'], $prices['silver'], $prices['usd'], $prices['ounce'], $prices['cny'], $prices['aed'], $prices['eur'], $prices['try'])) {
+    if (!save_prices($prices)) {
         error_log('save_prices failed: ' . var_export(error_get_last(), true));
     }
 }

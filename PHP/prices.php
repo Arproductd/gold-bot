@@ -81,6 +81,12 @@ function get_silver_price()
     return extract_price(http_get_json(SILVER_URL), 'price_buy', SILVER_URL);
 }
 
+// همون API نقره با نماد XCU؛ قیمت به ازای هر گرم و به تومانه
+function get_copper_price()
+{
+    return extract_price(http_get_json(COPPER_URL), 'price_buy', COPPER_URL);
+}
+
 function extract_tgju_price($data, $field, $url)
 {
     $value = $data['current'][$field]['p'] ?? null;

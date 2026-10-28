@@ -4,9 +4,18 @@
 // - data.jsonl: تاریخچه‌ی کامل قیمت‌ها به همراه زمان هر بار دریافت (هیچ‌وقت پاک نمی‌شه)
 // - last_average.txt / last_weekly.txt: جلوگیری از ارسال تکراری گزارش‌ها
 
+// قیمت‌هایی که توی تاریخچه ثبت می‌شن. هر وقت یکی اضافه بشه، ردیف‌های قدیمیِ data.jsonl
+// اون فیلد رو ندارن؛ برای همین میانگین ماهانه و کمینه/بیشینه‌ی هفتگی برای هر فیلد
+// جداگانه شمرده می‌شن و فیلدِ بدون داده اصلاً توی گزارش نمیاد (نه اینکه صفر نشون داده بشه).
+const TRACKED_PRICES = ['gold', 'silver', 'copper', 'usd', 'ounce', 'cny', 'aed', 'eur', 'try'];
+
 function load_prices()
 {
-    $defaults = ['gold' => 0, 'gold_ref' => 0, 'silver' => 0, 'usd' => 0, 'ounce' => 0, 'cny' => 0, 'aed' => 0, 'eur' => 0, 'try' => 0, 'scale' => 0];
+    $defaults = ['gold_ref' => 0, 'scale' => 0];
+
+    foreach (TRACKED_PRICES as $key) {
+        $defaults[$key] = 0;
+    }
 
     if (!file_exists(PRICE_FILE)) {
         return $defaults;
@@ -42,35 +51,24 @@ function migrate_gold_ref($value)
     return (int) $value;
 }
 
-function save_prices($gold, $gold_ref, $silver, $usd, $ounce, $cny, $aed, $eur, $try)
+function save_prices(array $prices)
 {
-    return file_put_contents(PRICE_FILE, json_encode([
-        'scale' => PRICE_SCALE_VERSION,
-        'gold' => $gold,
-        'gold_ref' => $gold_ref,
-        'silver' => $silver,
-        'usd' => $usd,
-        'ounce' => $ounce,
-        'cny' => $cny,
-        'aed' => $aed,
-        'eur' => $eur,
-        'try' => $try,
-    ])) !== false;
+    $record = ['scale' => PRICE_SCALE_VERSION, 'gold_ref' => $prices['gold_ref'] ?? 0];
+
+    foreach (TRACKED_PRICES as $key) {
+        $record[$key] = $prices[$key] ?? 0;
+    }
+
+    return file_put_contents(PRICE_FILE, json_encode($record)) !== false;
 }
 
-function append_data($gold, $silver, $usd, $ounce, $cny, $aed, $eur, $try)
+function append_data(array $prices)
 {
-    $entry = [
-        'time' => tehran_now()->format(DATE_ATOM),
-        'gold' => $gold,
-        'silver' => $silver,
-        'usd' => $usd,
-        'ounce' => $ounce,
-        'cny' => $cny,
-        'aed' => $aed,
-        'eur' => $eur,
-        'try' => $try,
-    ];
+    $entry = ['time' => tehran_now()->format(DATE_ATOM)];
+
+    foreach (TRACKED_PRICES as $key) {
+        $entry[$key] = $prices[$key] ?? null;
+    }
 
     file_put_contents(DATA_FILE, json_encode($entry, JSON_UNESCAPED_UNICODE) . "\n", FILE_APPEND | LOCK_EX);
 }
@@ -81,43 +79,43 @@ function month_average($year, $month)
         return null;
     }
 
-    $sums = ['gold' => 0, 'silver' => 0, 'usd' => 0, 'ounce' => 0, 'cny' => 0, 'aed' => 0, 'eur' => 0, 'try' => 0];
-    $count = 0;
+    $sums = [];
+    $counts = [];
 
     foreach (file(DATA_FILE, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
         $entry = json_decode($line, true);
-        $dt = new DateTime($entry['time']);
-        [$jy, $jm] = to_jalali($dt);
+
+        if (!isset($entry['time'])) {
+            continue;
+        }
+
+        [$jy, $jm] = to_jalali(new DateTime($entry['time']));
 
         if ($jy !== $year || $jm !== $month) {
             continue;
         }
 
-        $sums['gold'] += $entry['gold'];
-        $sums['silver'] += $entry['silver'];
-        $sums['usd'] += $entry['usd'] ?? 0;
-        $sums['ounce'] += $entry['ounce'] ?? 0;
-        $sums['cny'] += $entry['cny'] ?? 0;
-        $sums['aed'] += $entry['aed'] ?? 0;
-        $sums['eur'] += $entry['eur'] ?? 0;
-        $sums['try'] += $entry['try'] ?? 0;
-        $count++;
+        foreach (TRACKED_PRICES as $key) {
+            if (!is_numeric($entry[$key] ?? null)) {
+                continue;
+            }
+
+            $sums[$key] = ($sums[$key] ?? 0) + $entry[$key];
+            $counts[$key] = ($counts[$key] ?? 0) + 1;
+        }
     }
 
-    if ($count === 0) {
+    if (empty($counts)) {
         return null;
     }
 
-    return [
-        'gold' => (int) round($sums['gold'] / $count),
-        'silver' => (int) round($sums['silver'] / $count),
-        'usd' => (int) round($sums['usd'] / $count),
-        'ounce' => round($sums['ounce'] / $count, 2),
-        'cny' => (int) round($sums['cny'] / $count),
-        'aed' => (int) round($sums['aed'] / $count),
-        'eur' => (int) round($sums['eur'] / $count),
-        'try' => (int) round($sums['try'] / $count),
-    ];
+    $averages = [];
+
+    foreach ($counts as $key => $count) {
+        $averages[$key] = $sums[$key] / $count;
+    }
+
+    return $averages;
 }
 
 function week_high_low($start_date, $end_date)
@@ -126,48 +124,40 @@ function week_high_low($start_date, $end_date)
         return null;
     }
 
-    $prices = ['gold' => [], 'silver' => [], 'usd' => [], 'ounce' => [], 'cny' => [], 'aed' => [], 'eur' => [], 'try' => []];
+    $values = [];
 
     foreach (file(DATA_FILE, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
         $entry = json_decode($line, true);
+
+        if (!isset($entry['time'])) {
+            continue;
+        }
+
         $entry_date = (new DateTime($entry['time']))->format('Y-m-d');
 
         if ($entry_date < $start_date || $entry_date > $end_date) {
             continue;
         }
 
-        $prices['gold'][] = $entry['gold'];
-        $prices['silver'][] = $entry['silver'];
-        $prices['usd'][] = $entry['usd'] ?? 0;
-        $prices['ounce'][] = $entry['ounce'] ?? 0;
-        $prices['cny'][] = $entry['cny'] ?? 0;
-        $prices['aed'][] = $entry['aed'] ?? 0;
-        $prices['eur'][] = $entry['eur'] ?? 0;
-        $prices['try'][] = $entry['try'] ?? 0;
+        foreach (TRACKED_PRICES as $key) {
+            if (is_numeric($entry[$key] ?? null)) {
+                $values[$key][] = $entry[$key];
+            }
+        }
     }
 
-    if (empty($prices['gold'])) {
+    if (empty($values)) {
         return null;
     }
 
-    return [
-        'gold_high' => max($prices['gold']),
-        'gold_low' => min($prices['gold']),
-        'silver_high' => max($prices['silver']),
-        'silver_low' => min($prices['silver']),
-        'usd_high' => max($prices['usd']),
-        'usd_low' => min($prices['usd']),
-        'ounce_high' => max($prices['ounce']),
-        'ounce_low' => min($prices['ounce']),
-        'cny_high' => max($prices['cny']),
-        'cny_low' => min($prices['cny']),
-        'aed_high' => max($prices['aed']),
-        'aed_low' => min($prices['aed']),
-        'eur_high' => max($prices['eur']),
-        'eur_low' => min($prices['eur']),
-        'try_high' => max($prices['try']),
-        'try_low' => min($prices['try']),
-    ];
+    $summary = [];
+
+    foreach ($values as $key => $list) {
+        $summary[$key . '_high'] = max($list);
+        $summary[$key . '_low'] = min($list);
+    }
+
+    return $summary;
 }
 
 function load_last_average_month()
