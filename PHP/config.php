@@ -53,13 +53,6 @@ define('GOLD_URL', 'https://milli.gold/api/v1/public/milli-price/detail');
 define('SILVER_URL', 'https://melligold.com/api/v1/exchange/buy-sell-price/?format=json&symbol=XAG');
 define('COPPER_URL', 'https://melligold.com/api/v1/exchange/buy-sell-price/?format=json&symbol=XCU');
 define('TGJU_URL', 'https://call2.tgju.org/ajax.json?rev=HJogHjCOgu6awK2rIJN09u8MtOOogD3jj5knmgw12qF8oL9G43FTscPQs6pu');
-define('TABLO_GOLD_URL', 'https://tablo.gold/api/v1/gold-prices');
-define('TABLO_REFERENCE_URL', 'https://tablo.gold/api/v1/reference');
-define('TABLO_API_KEY', getenv('TABLO_API_KEY') ?: '');
-
-// نسخه‌ی مقیاسِ قیمت طلا که توی price.json ذخیره می‌شه. با بالا بردن این عدد،
-// مقدار ذخیره‌شده‌ی نسخه‌ی قبل یک بار تبدیل می‌شه و پیام بعد از deploy پرش جعلی نمی‌ده.
-define('PRICE_SCALE_VERSION', 3);
 
 define('PRICE_FILE', __DIR__ . '/price.json');
 define('DATA_FILE', __DIR__ . '/data.jsonl');

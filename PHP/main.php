@@ -130,11 +130,6 @@ function main()
     check_market_open($now);
 
     $last = load_prices();
-    $cheapest = get_tablo_cheapest_platform();
-    // نرخ مرجع tablo.gold برای خط «🥇Gold»؛ اگه در دسترس نبود قیمت milli.gold جاش می‌شینه.
-    // هر دو منبع به مقیاس نمایشی (تومانِ هر میلی) تبدیل شدن، پس قطع شدن API فقط منبع
-    // رو عوض می‌کنه، نه بزرگیِ عدد رو
-    $prices['gold_ref'] = get_tablo_reference_price() ?? toman($prices['gold']);
     $include_currencies = !is_currency_muted($now);
 
     if ($is_night_close) {
@@ -142,15 +137,15 @@ function main()
         $ending_weekday = (int) (new DateTime($day, new DateTimeZone(TEHRAN_TZ_NAME)))->format('N');
 
         if ($ending_weekday !== 5 || !send_friday_weekly_summary($day)) {
-            send_last_update($prices, $last, $now->format('H:i'), $include_currencies, $cheapest);
+            send_last_update($prices, $last, $now->format('H:i'), $include_currencies);
         }
 
         save_last_night($day);
     } elseif (load_last_morning() !== $day) {
-        send_morning_summary($prices, $last, $include_currencies, $cheapest);
+        send_morning_summary($prices, $last, $include_currencies);
         save_last_morning($day);
     } else {
-        send_price_update($prices, $last, $include_currencies, $cheapest);
+        send_price_update($prices, $last, $include_currencies);
     }
 
     if (!save_prices($prices)) {

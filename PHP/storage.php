@@ -11,7 +11,7 @@ const TRACKED_PRICES = ['gold', 'silver', 'copper', 'usd', 'ounce', 'cny', 'aed'
 
 function load_prices()
 {
-    $defaults = ['gold_ref' => 0, 'scale' => 0];
+    $defaults = [];
 
     foreach (TRACKED_PRICES as $key) {
         $defaults[$key] = 0;
@@ -21,39 +21,12 @@ function load_prices()
         return $defaults;
     }
 
-    $prices = (json_decode(file_get_contents(PRICE_FILE), true) ?: []) + $defaults;
-
-    if ((int) $prices['scale'] !== PRICE_SCALE_VERSION) {
-        $prices['gold_ref'] = migrate_gold_ref($prices['gold_ref']);
-        $prices['scale'] = PRICE_SCALE_VERSION;
-    }
-
-    return $prices;
-}
-
-// نسخه‌های قبلی gold_ref رو با مقیاس‌های دیگه‌ای نوشته بودن: تومانِ هر گرم (۸ رقمی) و
-// تومانِ هر سوت (۶ رقمی). چون شماره‌ی مقیاس داخل price.json ذخیره می‌شه، این حدس‌زدن از
-// روی تعداد رقم فقط یک بار روی داده‌ی قدیمی اجرا می‌شه و بعدش هیچ‌وقت.
-function migrate_gold_ref($value)
-{
-    if ($value <= 0) {
-        return 0;
-    }
-
-    if ($value >= 1000000) {
-        return (int) round($value / 1000);
-    }
-
-    if ($value >= 100000) {
-        return (int) round($value / 10);
-    }
-
-    return (int) $value;
+    return (json_decode(file_get_contents(PRICE_FILE), true) ?: []) + $defaults;
 }
 
 function save_prices(array $prices)
 {
-    $record = ['scale' => PRICE_SCALE_VERSION, 'gold_ref' => $prices['gold_ref'] ?? 0];
+    $record = [];
 
     foreach (TRACKED_PRICES as $key) {
         $record[$key] = $prices[$key] ?? 0;
