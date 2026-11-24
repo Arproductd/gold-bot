@@ -1,0 +1,51 @@
+name: Hourly USD to CNY
+
+on:
+  schedule:
+    - cron: "30 * * * *" # رأس هر ساعت به وقت تهران (UTC+03:30)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gold-bot-usd-cny
+  cancel-in-progress: false
+
+jobs:
+  send-rate:
+    if: github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Identify Tehran hour
+        id: hour
+        run: date '+key=%Y-%m-%d-%H' >> "$GITHUB_OUTPUT"
+        env:
+          TZ: Asia/Tehran
+
+      - name: Check for delivery this hour
+        id: delivery
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/usd-cny-sent
+          key: usd-cny-sent-${{ steps.hour.outputs.key }}
+          lookup-only: true
+
+      - uses: shivammathur/setup-php@v2
+        if: steps.delivery.outputs.cache-hit != 'true'
+        with:
+          php-version: "8.2"
+          extensions: curl
+
+      - name: Send private rate
+        if: steps.delivery.outputs.cache-hit != 'true'
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          USD_CNY_CHAT_ID: ${{ secrets.USD_CNY_CHAT_ID }}
+        run: |
+          php PHP/usd-cny.php
+          touch "$RUNNER_TEMP/usd-cny-sent"

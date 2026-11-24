@@ -30,24 +30,31 @@ function telegram_send_message($chat_id, $text)
         $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
         if ($response !== false && $status >= 200 && $status < 300) {
+            $result = json_decode($response, true);
+            if (($result['ok'] ?? false) !== true) {
+                error_log("تأیید ارسال پیام تلگرام به $chat_id دریافت نشد");
+                return false;
+            }
+
             if ($attempt > 1) {
                 error_log("ارسال پیام تلگرام به $chat_id در تلاش $attempt موفق شد");
             }
 
-            return;
+            return true;
         }
 
         // پیام رد شده (آیدی اشتباه، HTML خراب) با تکرار درست نمی‌شه
         if ($response !== false && $status >= 400 && $status < 500) {
             error_log("ارسال پیام تلگرام به $chat_id رد شد (HTTP $status): $response");
 
-            return;
+            return false;
         }
 
         $last_error = $response === false ? "curl: $error" : "HTTP $status";
     }
 
     error_log("ارسال پیام تلگرام به $chat_id بعد از " . HTTP_MAX_ATTEMPTS . " تلاش ناموفق بود — $last_error");
+    return false;
 }
 
 function broadcast($text)

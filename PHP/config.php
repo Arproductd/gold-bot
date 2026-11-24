@@ -45,10 +45,6 @@ define('CHAT_ID', getenv('CHAT_ID') ?: '');
 $chat_ids_raw = getenv('CHAT_IDS') ?: CHAT_ID;
 $GLOBALS['CHAT_IDS'] = array_values(array_filter(array_map('trim', explode(',', $chat_ids_raw))));
 
-if (BOT_TOKEN === '' || empty($GLOBALS['CHAT_IDS'])) {
-    error_log('تنظیمات ناقصه: BOT_TOKEN یا CHAT_ID خالیه — فایل .env رو چک کن.');
-}
-
 define('GOLD_URL', 'https://milli.gold/api/v1/public/milli-price/detail');
 define('SILVER_URL', 'https://melligold.com/api/v1/exchange/buy-sell-price/?format=json&symbol=XAG');
 define('COPPER_URL', 'https://melligold.com/api/v1/exchange/buy-sell-price/?format=json&symbol=XCU');

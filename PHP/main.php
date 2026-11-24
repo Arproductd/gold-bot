@@ -105,6 +105,10 @@ function morning_key_date($now)
 
 function main()
 {
+    if (BOT_TOKEN === '' || empty($GLOBALS['CHAT_IDS'])) {
+        error_log('تنظیمات ناقصه: BOT_TOKEN یا CHAT_ID خالیه — فایل .env رو چک کن.');
+    }
+
     $now = tehran_now();
 
     $prices = [
