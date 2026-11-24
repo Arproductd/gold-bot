@@ -35,7 +35,7 @@ function load_env($path)
     }
 }
 
-load_env(__DIR__ . '/.env');
+load_env(getenv('GOLD_BOT_ENV_FILE') ?: __DIR__ . '/.env');
 
 define('BOT_TOKEN', getenv('BOT_TOKEN') ?: '');
 define('CHAT_ID', getenv('CHAT_ID') ?: '');

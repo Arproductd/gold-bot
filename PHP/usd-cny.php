@@ -19,11 +19,12 @@ function usd_cny_slot(DateTime $now): ?array
         return null;
     }
 
-    $interval = match (true) {
-        $hour === 11 => 15,
-        $hour >= 12 && $hour < 16 => 30,
-        default => 60,
-    };
+    $interval = 60;
+    if ($hour === 11) {
+        $interval = 15;
+    } elseif ($hour >= 12 && $hour < 16) {
+        $interval = 30;
+    }
     $minute = intdiv((int) $now->format('i'), $interval) * $interval;
     $start = (clone $now)->setTime($hour, $minute);
     [$year, $month, $day] = to_jalali($now);
