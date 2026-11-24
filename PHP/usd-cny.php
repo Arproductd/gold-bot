@@ -34,6 +34,8 @@ function usd_cny_slot(DateTime $now): ?array
     ];
 }
 
+$delivery_state = null;
+
 try {
     $slot = usd_cny_slot(tehran_now());
     $requested_slot = $argv[1] ?? '';
@@ -42,13 +44,33 @@ try {
         exit;
     }
 
-    if ($slot === null || $slot['key'] !== $requested_slot) {
+    $cron = $requested_slot === '--cron';
+    if ($cron && $slot === null) {
+        return;
+    }
+
+    if ($slot === null || (!$cron && $slot['key'] !== $requested_slot)) {
         throw new RuntimeException('The requested USD/CNY delivery slot is no longer active.');
     }
 
     $chat_id = getenv('USD_CNY_CHAT_ID') ?: '';
     if (BOT_TOKEN === '' || !preg_match('/\A[1-9][0-9]*\z/', $chat_id)) {
         throw new RuntimeException('Configure BOT_TOKEN and a private USD_CNY_CHAT_ID.');
+    }
+
+    if ($cron) {
+        $delivery_state = fopen(__DIR__ . '/.usd-cny-last-slot', 'c+');
+        if ($delivery_state === false || !flock($delivery_state, LOCK_EX)) {
+            throw new RuntimeException('Could not lock the exchange rate delivery state.');
+        }
+
+        $last_slot = stream_get_contents($delivery_state);
+        if ($last_slot === false) {
+            throw new RuntimeException('Could not read the exchange rate delivery state.');
+        }
+        if (trim($last_slot) === $slot['key'] || time() >= $slot['end']) {
+            return;
+        }
     }
 
     $snapshot = http_get_json(TGJU_URL);
@@ -72,8 +94,19 @@ try {
         throw new RuntimeException('Telegram did not confirm the exchange rate message.');
     }
 
+    if ($cron) {
+        $record = $slot['key'] . PHP_EOL;
+        if (!rewind($delivery_state) || fwrite($delivery_state, $record) !== strlen($record) || !fflush($delivery_state)) {
+            throw new RuntimeException('Telegram accepted the message, but the delivery slot could not be saved.');
+        }
+    }
+
     echo 'Telegram confirmed the exchange rate message.', PHP_EOL;
 } catch (Throwable $error) {
     error_log($error->getMessage());
     exit(1);
+} finally {
+    if (is_resource($delivery_state)) {
+        fclose($delivery_state);
+    }
 }
