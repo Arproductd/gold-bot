@@ -5,7 +5,8 @@
 ini_set('display_errors', '0');
 ini_set('log_errors', '1');
 
-$error_log_path = __DIR__ . '/error.log';
+$state_dir = getenv('GOLD_BOT_STATE_DIR') ?: __DIR__;
+$error_log_path = $state_dir . '/error.log';
 
 // اگه لاگ خیلی بزرگ شد (بیشتر از ۲ مگابایت)، از نو شروع کن تا فضا هدر نره.
 if (file_exists($error_log_path) && filesize($error_log_path) > 2 * 1024 * 1024) {
@@ -50,13 +51,13 @@ define('SILVER_URL', 'https://melligold.com/api/v1/exchange/buy-sell-price/?form
 define('COPPER_URL', 'https://melligold.com/api/v1/exchange/buy-sell-price/?format=json&symbol=XCU');
 define('TGJU_URL', 'https://call2.tgju.org/ajax.json?rev=HJogHjCOgu6awK2rIJN09u8MtOOogD3jj5knmgw12qF8oL9G43FTscPQs6pu');
 
-define('PRICE_FILE', __DIR__ . '/price.json');
-define('DATA_FILE', __DIR__ . '/data.jsonl');
-define('LAST_AVERAGE_FILE', __DIR__ . '/last_average.txt');
-define('LAST_WEEKLY_FILE', __DIR__ . '/last_weekly.txt');
-define('LAST_MORNING_FILE', __DIR__ . '/last_morning.txt');
-define('LAST_MARKET_OPEN_FILE', __DIR__ . '/last_market_open.txt');
-define('LAST_NIGHT_FILE', __DIR__ . '/last_night.txt');
+define('PRICE_FILE', $state_dir . '/price.json');
+define('DATA_FILE', $state_dir . '/data.jsonl');
+define('LAST_AVERAGE_FILE', $state_dir . '/last_average.txt');
+define('LAST_WEEKLY_FILE', $state_dir . '/last_weekly.txt');
+define('LAST_MORNING_FILE', $state_dir . '/last_morning.txt');
+define('LAST_MARKET_OPEN_FILE', $state_dir . '/last_market_open.txt');
+define('LAST_NIGHT_FILE', $state_dir . '/last_night.txt');
 
 // بازه‌ی سکوت. اولین اجرای داخل این بازه پیام آخر شب رو می‌فرسته و بقیه‌ی شب ساکته؛
 // اولین اجرای بعد از این بازه، خلاصه‌ی صبحگاهیه. هیچ‌کدوم به دقیقه‌ی دقیق گره نخوردن،
