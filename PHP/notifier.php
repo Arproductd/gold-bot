@@ -1,7 +1,7 @@
 <?php
 // ارسال پیام به تلگرام: قالب‌بندی متن پیام‌های قیمت، میانگین ماهانه و خلاصه هفتگی.
 
-function telegram_send_message($chat_id, $text)
+function telegram_send_message($chat_id, $text, ?int $send_before = null)
 {
     $url = 'https://api.telegram.org/bot' . BOT_TOKEN . '/sendMessage';
     $body = http_build_query([
@@ -17,12 +17,17 @@ function telegram_send_message($chat_id, $text)
             sleep(HTTP_RETRY_DELAY);
         }
 
+        $timeout = $send_before === null ? HTTP_TIMEOUT : min(HTTP_TIMEOUT, $send_before - time());
+        if ($timeout <= 0) {
+            return false;
+        }
+
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, HTTP_TIMEOUT);
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 8);
+        curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, min(8, $timeout));
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
 
         $response = curl_exec($ch);

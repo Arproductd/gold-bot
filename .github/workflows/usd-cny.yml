@@ -1,8 +1,13 @@
-name: Hourly USD to CNY
+name: USD to CNY private updates
 
 on:
   schedule:
-    - cron: "30 * * * *" # رأس هر ساعت به وقت تهران (UTC+03:30)
+    - cron: "0 7-10,16-23 * * *"
+      timezone: Asia/Tehran
+    - cron: "0,15,30,45 11 * * *"
+      timezone: Asia/Tehran
+    - cron: "0,30 12-15 * * *"
+      timezone: Asia/Tehran
   workflow_dispatch:
 
 permissions:
@@ -21,31 +26,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Identify Tehran hour
-        id: hour
-        run: date '+key=%Y-%m-%d-%H' >> "$GITHUB_OUTPUT"
-        env:
-          TZ: Asia/Tehran
-
-      - name: Check for delivery this hour
-        id: delivery
-        uses: actions/cache@v4
-        with:
-          path: ${{ runner.temp }}/usd-cny-sent
-          key: usd-cny-sent-${{ steps.hour.outputs.key }}
-          lookup-only: true
-
       - uses: shivammathur/setup-php@v2
-        if: steps.delivery.outputs.cache-hit != 'true'
         with:
           php-version: "8.2"
           extensions: curl
 
+      - name: Identify the Tehran delivery slot
+        id: slot
+        run: |
+          key=$(php PHP/usd-cny.php --slot)
+          printf 'key=%s\n' "$key" >> "$GITHUB_OUTPUT"
+
+      - name: Check for delivery in this slot
+        id: delivery
+        if: steps.slot.outputs.key != ''
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/usd-cny-sent
+          key: usd-cny-sent-${{ steps.slot.outputs.key }}
+          lookup-only: true
+
       - name: Send private rate
-        if: steps.delivery.outputs.cache-hit != 'true'
+        if: steps.slot.outputs.key != '' && steps.delivery.outputs.cache-hit != 'true'
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           USD_CNY_CHAT_ID: ${{ secrets.USD_CNY_CHAT_ID }}
+          USD_CNY_SLOT: ${{ steps.slot.outputs.key }}
         run: |
-          php PHP/usd-cny.php
+          php PHP/usd-cny.php "$USD_CNY_SLOT"
           touch "$RUNNER_TEMP/usd-cny-sent"
