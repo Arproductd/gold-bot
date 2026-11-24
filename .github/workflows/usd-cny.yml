@@ -2,12 +2,11 @@ name: Private USD, AED and CNY rates
 
 on:
   schedule:
-    - cron: "0 7-10,16-23 * * *"
-      timezone: Asia/Tehran
-    - cron: "0,15,30,45 11 * * *"
-      timezone: Asia/Tehran
-    - cron: "0,30 12-15 * * *"
-      timezone: Asia/Tehran
+    # GitHub cron runs in UTC. The delivery slot uses Tehran time and the Solar Hijri date.
+    - cron: "30 3-19 * * *" # 07:00 through 23:00, every hour
+    - cron: "45 7 * * *"   # 11:15
+    - cron: "0 8-12 * * *" # 11:30 through 15:30, every hour
+    - cron: "15 8 * * *"   # 11:45
   workflow_dispatch:
 
 permissions:
@@ -19,7 +18,7 @@ concurrency:
 
 jobs:
   send-rate:
-    if: github.ref_name == github.event.repository.default_branch
+    if: github.event_name == 'schedule' || github.ref_name == github.event.repository.default_branch
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
