@@ -10,7 +10,7 @@ require __DIR__ . '/jalali.php';
 require __DIR__ . '/prices.php';
 require __DIR__ . '/notifier.php';
 
-ini_set('error_log', '');
+ini_set('error_log', getenv('USD_CNY_ERROR_LOG') ?: '');
 
 function usd_cny_slot(DateTime $now): ?array
 {
@@ -35,7 +35,7 @@ function usd_cny_slot(DateTime $now): ?array
     ];
 }
 
-$delivery_state = null;
+$delivery_lock = null;
 
 try {
     $slot = usd_cny_slot(tehran_now());
@@ -55,21 +55,42 @@ try {
     }
 
     $chat_id = getenv('USD_CNY_CHAT_ID') ?: '';
-    if (BOT_TOKEN === '' || !preg_match('/\A[1-9][0-9]*\z/', $chat_id)) {
-        throw new RuntimeException('Configure BOT_TOKEN and a private USD_CNY_CHAT_ID.');
+    $extra_chat_id = $cron ? (getenv('USD_CNY_EXTRA_CHAT_ID') ?: '') : '';
+    $chat_ids = [$chat_id];
+    if ($extra_chat_id !== '' && $extra_chat_id !== $chat_id) {
+        $chat_ids[] = $extra_chat_id;
+    }
+    if (BOT_TOKEN === '' || preg_grep('/\A[1-9][0-9]*\z/', $chat_ids, PREG_GREP_INVERT)) {
+        throw new RuntimeException('Configure BOT_TOKEN and valid private recipient IDs.');
     }
 
+    $delivered = [];
     if ($cron) {
-        $delivery_state = fopen(__DIR__ . '/.usd-cny-last-slot', 'c+');
-        if ($delivery_state === false || !flock($delivery_state, LOCK_EX)) {
+        $state_file = getenv('USD_CNY_STATE_FILE') ?: __DIR__ . '/.usd-cny-last-slot';
+        $delivery_lock = fopen($state_file . '.lock', 'c');
+        if ($delivery_lock === false || !flock($delivery_lock, LOCK_EX)) {
             throw new RuntimeException('Could not lock the exchange rate delivery state.');
         }
 
-        $last_slot = stream_get_contents($delivery_state);
-        if ($last_slot === false) {
-            throw new RuntimeException('Could not read the exchange rate delivery state.');
+        if (is_file($state_file)) {
+            $previous = file_get_contents($state_file);
+            if ($previous === false) {
+                throw new RuntimeException('Could not read the exchange rate delivery state.');
+            }
+            $record = trim($previous);
+            if ($record === $slot['key']) {
+                // Older cPanel runs recorded only the primary recipient's slot.
+                $delivered = [$chat_id];
+            } elseif ($record !== '' && !preg_match('/\A\d{4}(?:-\d{2}){4}\z/', $record)) {
+                $history = json_decode($record, true, 512, JSON_THROW_ON_ERROR);
+                if (($history['slot'] ?? null) === $slot['key']) {
+                    $delivered = $history['recipients'];
+                }
+            }
         }
-        if (trim($last_slot) === $slot['key'] || time() >= $slot['end']) {
+
+        $chat_ids = array_diff($chat_ids, $delivered);
+        if (!$chat_ids || time() >= $slot['end']) {
             return;
         }
     }
@@ -91,23 +112,32 @@ try {
         '$1 = 🇦🇪 AED ' . number_format($prices['usd'] / $prices['aed'], 2, ',', ''),
     ]);
 
-    if (!telegram_send_message($chat_id, $message, $slot['end'])) {
-        throw new RuntimeException('Telegram did not confirm the exchange rate message.');
-    }
+    $failed = false;
+    foreach ($chat_ids as $recipient) {
+        if (!telegram_send_message($recipient, $message, $slot['end'])) {
+            $failed = true;
+            continue;
+        }
 
-    if ($cron) {
-        $record = $slot['key'] . PHP_EOL;
-        if (!rewind($delivery_state) || fwrite($delivery_state, $record) !== strlen($record) || !fflush($delivery_state)) {
-            throw new RuntimeException('Telegram accepted the message, but the delivery slot could not be saved.');
+        if ($cron) {
+            $delivered[] = $recipient;
+            $record = json_encode(['slot' => $slot['key'], 'recipients' => $delivered], JSON_THROW_ON_ERROR) . PHP_EOL;
+            $pending_state = $state_file . '.tmp';
+            if (file_put_contents($pending_state, $record) !== strlen($record) || !rename($pending_state, $state_file)) {
+                throw new RuntimeException('Telegram accepted the message, but the delivery slot could not be saved.');
+            }
         }
     }
 
+    if ($failed) {
+        throw new RuntimeException('Telegram did not confirm every private delivery.');
+    }
     echo 'Telegram confirmed the exchange rate message.', PHP_EOL;
 } catch (Throwable $error) {
     error_log($error->getMessage());
     exit(1);
 } finally {
-    if (is_resource($delivery_state)) {
-        fclose($delivery_state);
+    if (is_resource($delivery_lock)) {
+        fclose($delivery_lock);
     }
 }

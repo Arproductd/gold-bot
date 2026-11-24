@@ -16,3 +16,5 @@ PHP/.diag_sent
 PHP/last_market_open.txt
 PHP/last_night.txt
 PHP/.usd-cny-last-slot
+PHP/.usd-cny-last-slot.lock
+PHP/.usd-cny-last-slot.tmp
