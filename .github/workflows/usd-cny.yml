@@ -1,4 +1,4 @@
-name: USD to CNY private updates
+name: Private USD, AED and CNY rates
 
 on:
   schedule:

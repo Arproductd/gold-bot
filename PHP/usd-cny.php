@@ -51,21 +51,28 @@ try {
         throw new RuntimeException('Configure BOT_TOKEN and a private USD_CNY_CHAT_ID.');
     }
 
-    $prices = http_get_json(TGJU_URL);
-    // هر دو قیمت به ریال هستند و نسبتشان تعداد یوان برای یک دلار است.
-    $usd = (float) extract_tgju_price($prices, 'price_dollar_rl', TGJU_URL);
-    $cny = (float) extract_tgju_price($prices, 'price_cny', TGJU_URL);
-    if (!is_finite($usd) || !is_finite($cny) || $usd <= 0 || $cny <= 0) {
-        throw new RuntimeException('TGJU returned an invalid dollar or yuan price.');
+    $snapshot = http_get_json(TGJU_URL);
+    $prices = [];
+    foreach (['usd' => 'price_dollar_rl', 'aed' => 'price_aed', 'cny' => 'price_cny'] as $currency => $field) {
+        $price = (float) extract_tgju_price($snapshot, $field, TGJU_URL);
+        if (!is_finite($price) || $price <= 0) {
+            throw new RuntimeException("TGJU returned an invalid $currency price.");
+        }
+        $prices[$currency] = $price;
     }
 
-    $message = '$1 = 🇨🇳 CNY ' . number_format($usd / $cny, 2, ',', '');
+    // قیمت‌ها به ریال‌اند. تقسیم قیمت ارز مبدأ بر ارز مقصد، نرخ تبدیل را می‌دهد.
+    $message = implode("\n", [
+        '$1 = 🇨🇳 CNY ' . number_format($prices['usd'] / $prices['cny'], 2, ',', ''),
+        '1 AED = 🇨🇳 CNY ' . number_format($prices['aed'] / $prices['cny'], 2, ',', ''),
+        '$1 = 🇦🇪 AED ' . number_format($prices['usd'] / $prices['aed'], 2, ',', ''),
+    ]);
 
     if (!telegram_send_message($chat_id, $message, $slot['end'])) {
-        throw new RuntimeException('Telegram did not confirm the USD/CNY message.');
+        throw new RuntimeException('Telegram did not confirm the exchange rate message.');
     }
 
-    echo 'Telegram confirmed the USD/CNY message.', PHP_EOL;
+    echo 'Telegram confirmed the exchange rate message.', PHP_EOL;
 } catch (Throwable $error) {
     error_log($error->getMessage());
     exit(1);
